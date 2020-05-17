@@ -2,11 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1ea54666-2d91-4c0b-9c62-bb6727aa4a27" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../2_Coreconcepts/8_downloads/Kubernetes-CKA-0100-Core-Concepts.pdf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../2_Coreconcepts/8_downloads/Kubernetes-taints-tolerations.pdf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../2_Coreconcepts/8_downloads/kubernetes-services.pdf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../3_Scheduling/40_Downloads/Kubernetes-CKA-0200-Scheduling.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/../3_Scheduling/40_Downloads/Kubernetes-CKA-0200-Scheduling.pdf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../2_Coreconcepts/8_downloads/2_PodsYaml_Namespaces_myNotes.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/../2_Coreconcepts/8_downloads/2_PodsYaml_Namespaces_myNotes.pdf" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/2_CoreConcepts/1_nginxpod.yml" beforeDir="false" afterPath="$PROJECT_DIR$/2_CoreConcepts/1_nginxpod.yml" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -52,7 +50,9 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
           </value>
         </entry>
       </map>

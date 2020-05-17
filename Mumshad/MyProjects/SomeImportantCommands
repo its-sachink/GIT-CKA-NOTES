@@ -1,5 +1,0 @@
-kubectl get pod webapp -o yaml
-kubectl edit pod webapp
-
-############ ReplicaSet ##########
-kubectl get replicaset

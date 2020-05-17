@@ -1,0 +1,47 @@
+Commands
+
+# alias k=kubectl
+
+# export do="--dry-run=client -o yaml"
+
+- Create pod
+	
+	# k run nginx --image=nginx $do
+	# k run nginx --image=nginx $do > nginx.yaml
+
+- Describe pod
+
+	# k describe pod pod-name
+
+	# k get pods -o wide
+
+- Create deployment
+	
+	# k create deploy deploy1 --image=nginx $do
+
+	# k create deploy deploy1 --image=nginx $do > deploy1.yaml
+
+- Create replicaset
+
+	- Add additional pods in replicaset, edit the file and give below command
+
+		# k replace -f replicaset-def.yaml
+
+	- To scale the replicaset
+
+		# k scale --replicas=6 -f replicaset-def.yaml
+
+		# k scale --replicas=6 replicaset replicaset-name
+
+
+	# k describe rs replicaset-name
+
+- Create deployments
+
+	# k create deployment --image=nginx nginx
+
+	# k create deployment --image=nginx nginx --dry-run=client -o yaml
+
+		- To change the replicas create file and edit the replicas
+
+	# k create deployment --image=2.4-alpine httpd-frontend $do
