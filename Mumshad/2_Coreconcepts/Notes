@@ -199,3 +199,61 @@ Master Node : Manage, Plan, Schedule, Monitor Nodes. Master node does all of thi
 		- You might want to undo the changes.
 		- Deployment creates a replicaset automatically.
 		
+
+- Namespace
+
+	- namespace is used to segregate the resources in the kubernetes.
+	- Kubernetes have following ns,
+		- default
+		- kube-system
+		- kube-public
+
+	- Each namespace can have a quota of resources and different policies.
+
+	- Resources within a same name space can reach directly
+	- To reach to resource in different namespace like say dev environment use,
+
+			- service-name.namespace.svc.cluster.local
+			- db-service.dev.svc.cluster.local
+
+		# kubectl get pods --namespace=kube-system
+
+
+- Service
+
+	- Node-port service : Lister for a request on the nodes port and forward that request to the Pod running the appropriate applications.
+
+		- targetPort: port on the POD where application is listening within a POD
+		- port: port on the service itself
+		- nodePort: port on the node itself which we use to access the webserver externally
+
+		- for nodePort:
+		-------------------------------------
+			spec:
+			  type: NodePort
+			  ports:
+			    - targetPort: 80		# if not specified, taken same as a port
+			      port: 80				# this is mandatory field
+			      nodePort: 30008		# if not specified a arbitrary value is taken
+			  selector:					# link the service to the pod
+			    app: myapp	
+			    type: front-end
+		-------------------------------------
+		- you can use IP of any node to access the nodePort service
+
+	- Cluster-ip service : The service creates a virtual IP inside a cluster to enable a communication between different services such a front-end to backend servers. It provides a single interface to communicate with other pods.
+		- It is a default type.
+		-------------------------------------
+			spec:
+			  type: ClusterIP
+			  ports:
+			    - targetPort: 80			# port where the pod is exposed
+ 				  port: 80					# port where the service is exposed
+ 			  selector:
+ 			    app: myapp
+ 			    type: back-end
+		-------------------------------------
+
+
+	- Loadbalancer service : It is done in supported cloud providers. Like using ALB with public IP address.
+
