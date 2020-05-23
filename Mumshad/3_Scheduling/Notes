@@ -1,1 +1,404 @@
 ########### Notes #############
+
+- Manual scheduling of a Pod :
+
+			spec:
+			  containers:
+			  - name: nginx
+			    image: nginx
+			    ports:
+			      - containerPort: 8080
+			  nodeName: ndoe01
+
+
+- Labels and Selectors :
+
+	- Its a standard method to group things together and select things based on labels
+
+
+- How to specify labels and selectors :
+
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: simple-webapp
+  labels:								<<<< This is a label of ReplicaSet, this can be used with Service def
+    app: App1
+    function: Front-end
+  annotations:
+    buildversion: 1						<<<< Is used to record other details for informatory purpose
+spec:
+  replicas: 3
+  selector:
+    matchLabels:						<<<< Selector : This is where we select the pods based on label
+      app: App1 						<<<< Only single label is enough
+  template:
+    metadata:
+      labels:							<<<< Label : This is where we label the pods
+        app: App1
+        function: Front-end
+    spec:
+      containers:
+      - name: simple-webapp
+        image: simple-webapp
+
+
+
+- Taints and tolerations :
+
+	- To restrict what pod to be placed on which nodes.
+	- Unless specified none of the pod can tolerate any Taints. Which means if a node is tainted none of the pods can be placed on it unless specified.
+	- If a pod is mentioned as a tolerant to any tainted node then it can be placed on that node by the scheduler.
+
+	- Taints : Are set on nodes
+	- Tolerations : Are set on pods
+
+	# kubectl taint nodes node-name key=value:taint-effect
+
+						- taint-effect: What to do the pods if they do not tolerate the taints, below are values
+								- NoSchedule
+								- PreferNoSchedule
+								- NoExecute : New pod will not be scheduled and existing pods wil be evicted as well which don't have the toleration set
+
+						- The tolerant pod can also be set on non-tainted nodes
+						- It tells nodes only to accept certain pods and does not control the pods
+						- The scheduler does not schedule any pods on the master nodes
+
+	# kubectl describe node kubemaster | grep Taint
+
+						- To check the taint on the node master
+
+	# kubectl taint nodes node1 app=blue:NoSchedule
+
+
+	- Adding a tolerations to pods
+
+	metadata:
+	  name: myapp-prod
+	spec:
+	  containers:
+	  - name: nginx-controller
+	    image: nginx
+	  tolerations:
+	  - key: "app"
+	    operator: "Equal"
+	    value: "blue"
+	    effect: "NoSchedule"
+
+
+- Node selectors:
+	
+	- Assign a pod to only selected nodes, which means limit a pod only to run on a larger nodes.
+
+	- So the process is,
+		1) Label the nodes
+		2) Then place the pods based on the label in the pod definition file
+
+	# kubectl label nodes node1 size=Large
+	--------- pod definition -------------
+	metadata:
+	  name: myapp
+	spec:
+	  containers:
+	  - name: data-processor
+	    image: data-processor
+	  nodeSelector:
+	    size: Large
+	------------------------ -------------
+
+	- What is our requirement is complex like place the pod on a Large or Medium node, or place is on a node other than smaller one
+	- In this case we will use Node Affinity
+
+
+
+- Node Affinity:
+
+	- To ensure pods are hosted on a particular nodes using pod affinity.
+
+	--------------- pod def using "In" operator ------------------------
+	spec:
+	  containers:
+	    - name: data-processor
+	      image: data-processsor
+	    affinity:
+	      nodeAffinity:
+	        requiredDuringSchedulingIgnoredDuringExecution:
+	          nodeSelectorTerms:
+	          - matchExpressions:
+	            - key: size
+	              operator: In
+	              values:
+	              - Large
+	              - Medium
+	---------------------------- ----------------------------------------
+
+	--------------- pod def using "NotIn" operator ----------------------
+	spec:
+	  containers:
+	    - name: data-processor
+	      image: data-processsor
+	    affinity:
+	      nodeAffinity:
+	        requiredDuringSchedulingIgnoredDuringExecution:
+	          nodeSelectorTerms:
+	          - matchExpressions:
+	            - key: size
+	              operator: NotIn
+	              values:
+	              - Small
+	------------------------------ --------------------------------------
+
+
+	- Node Affinity Types :
+
+		- requiredDuringSchedulingIgnoredDuringExecution
+		- preferredDuringSchedulingIgnoredDuringExecution
+		- requiredDuringSchedulingRequiredDuringExecution
+
+
+
+
+- Taints Tolerations vs Node Affinity :
+
+	- Taints Tolerations and Node Affinity can be used together to completely dedicate nodes for specific part we first use taints and toleration
+	to prevent other parts from being placed on our nodes. And then we use node affinity to prevent our parts from being placed on their nodes.
+
+
+- Resource requirement and Limits :
+
+	- 1 count of CPU is equivalent to 1 vCPU. That’s 1 vCPU in AWS, or 1 Core in GCP or Azure or 1 Hyperthread. You could request a higher number.
+	- You could request a higher number of CPUs for the container, provided your Nodes are sufficiently funded. Similarly, with memory you could specify 256 Mebibyte using the Mi suffix.
+
+	- Note the difference between G and Gi. 
+		- G is Gigabyte and it refers to a 1000 Megabytes, whereas Gi refers to Gibibyte and refers to 1024 Mebibyte.
+
+
+	1 G(Gigabyte) = 1000 MB
+	1 M(Megabyte) = 1000 KB
+	1 K(Kilobye)  = 1000 bytes
+
+	1 GiB = 1024 MiB
+	1 MiB = 1024 KiB
+	1 KiB = 1024 bytes
+
+	--------------- pod definition for resource allocation -----------------
+	spec:
+	  containers:
+	  - name: simple-webapp-color
+	    image: simple-webapp-color
+	    ports:
+	      - containerPort: 8080
+	    resources:
+	      requests:
+	        memory: "1Gi"
+	        cpu: 1
+	------------------------------------------------------------------------
+
+	-------------- Pod definition for resources allocation and limits -------------
+		spec:
+	  containers:
+	  - name: simple-webapp-color
+	    image: simple-webapp-color
+	    ports:
+	      - containerPort: 8080
+	    resources:
+	      requests:
+	        memory: "1Gi"
+	        cpu: 1
+	      limits:
+	        memory: "2Gi"
+	        cpu: 2
+	-------------------------------------------------------------------------------
+
+	- When pod tries to exceed resources beyond its specified limit then,
+		- In case of the CPU, kubernetes throttles the CPU so that it does not go beyond the specified limit. A container cannot use more CPU resources than its limit.
+		- However, this is not the case with memory. A container CAN use more memory resources that its limit. So if a pod tries to consume more memory than its limit constantly, the POD will be terminated.
+
+	- "When a pod is created the containers are assigned a default CPU request of .5 and memory of 256Mi". For the POD to pick up those defaults you must have first set those as default values for request and limit by creating a LimitRange in that namespace.
+
+	------------------ set memory limit ------------------------------
+	apiVersion: v1
+	kind: LimitRange
+	metadata:
+	  name: mem-limit-range
+	spec:
+	  limits:
+	  - default:
+	      memory: 512Mi
+	    defaultRequest:
+	      memory: 256Mi
+	    type: Container
+	-------------------------------------------------------------------
+
+	------------------ set cpu limit ------------------------------
+	apiVersion: v1
+	kind: LimitRange
+	metadata:
+	  name: cpu-limit-range
+	spec:
+	  limits:
+	  - default:
+	      cpu: 1
+	    defaultRequest:
+	      cpu: 0.5
+	    type: Container
+	-------------------------------------------------------------------
+
+	- Ref :
+		- https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-default-namespace/
+		- https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/cpu-default-namespace/
+		- https://kubernetes.io/docs/tasks/configure-pod-container/assign-memory-resource
+
+
+	- You cannot edit the environment variables, service accounts, resource limits (all of which we will discuss later) of a running pod. But if you really want to, you have 2 options:
+
+		1. Run the kubectl edit pod <pod name> command.  This will open the pod specification in an editor (vi editor). Then edit the required properties. When you try to save it, you will be denied. This is because you are attempting to edit a field on the pod that is not editable. A copy of the file with your changes is saved in a temporary location.
+
+			# kubectl create -f /tmp/kubectl-edit-ccvrq.yaml
+
+		2. The second option is to extract the pod definition in YAML format to a file using the command
+
+			# kubectl get pod webapp -o yaml > my-new-pod.yaml
+
+			Then make the changes to the exported file using an editor (vi editor). Save the changes
+
+			# vi my-new-pod.yaml
+
+			Then delete the existing pod
+
+			# kubectl delete pod webapp
+
+			Then create a new pod with the edited file
+
+			# kubectl create -f my-new-pod.yaml
+
+
+- Daemon Sets :
+
+	- The demon set ensures that one copy of the pod is always present in all nodes in the cluster.
+
+	- So what are some use cases of daemonsets?
+		- Say you would like to deploy a monitoring agent or log collector on each of your nodes in the cluster			
+		- Demon set is perfect for that as it can deploy your monitoring agent in the form of a pod in all the nodes in your cluster. Then, you don’t have to worry about adding/removing monitoring agents from these nodes when there are changes in your cluster. as the daemon set will take care of that for you.
+
+	- How to create a Deamon set
+	------------------------- Daemon Set -----------------------
+	apiVersion: apps/v1
+	kind: DaemonSet               <<<< only change the kind from Deployment to DaemonSet
+	metadata:
+	  name: monitroing-daemon
+	spec:
+	  selector:
+	    matchLabels:
+	      app: monitoring-daemon
+	  template:
+	    metadata:
+	      labels:
+	        app: monitoring-daemon
+	    spec:
+	      containers:
+	      - name: monitoring-daemon
+	        image: monitoring-daemon
+	------------------------------------------------------------	
+
+	# kubectl get daemonsets
+			- To get the details of Daemonset
+
+	# kubectl describe daemonsets monitoring-daemon
+			- To view more details
+
+
+- Static Pods :
+
+	- Pod created by Kubelet (not KubeAPI) on the individual nodes are called static pods.
+	- The Pod definition file is placed in directory "/etc/kubernetes/manifests".
+	- You cannot create replicaset, service by placing definition in "/etc/kubernetes/manifests" directory.
+	- This path is set in the file "kubelet.service".
+
+		--------- kubelet.service file -----------------
+		--pod-manifest-path=/etc/kubernetes/manifests
+		------------------------------------------------
+
+	- Another way to specify this is to provide a path to another config file. Cluster set by "kubeadmin" tool uses this approach.
+
+		--------- kubelet.service file -----------------
+		--config=kubeconfig.yaml
+		------------------------------------------------	
+
+		--------- kubeconfig.yaml file -----------------
+		staticPodPath: /etc/kubernetes/manifests
+		------------------------------------------------
+
+
+	- So first look for "--pod-manifest-path" if that is not present then look for "--config" option and further "staticPodPath" option.
+
+	- Static Pod can be viewed using the "docker ps" command.
+
+	- Kubelet can create both types of pods, the static pods and the otherone from the request provided by the KubeApi server at the same time.
+
+	- Static pods are used in the case of creating the control plane components of the cluster.
+
+	- Static pods have a nodename appended at the end of the podname in the output of "k get pods".
+
+
+
+- Multiple Schedulers :
+
+	- Kubernetes can have multiple schedulers at the same time, also we can tell Kubernetes to use specific scheduler for a specific pod creation.
+
+	- # cat kube-scheduler.service
+		ExecStart=/usr/local/bin/kube-scheduler \\		<<<< Scheduler binary path
+			--config=/etc/kubernetes/config/kube-scheduler.yaml \\
+			--scheduler-name=default-scheduler		<<<< This is the name of scheduler
+
+
+
+	- Details of the kube-scheduler pod
+
+	----------------- definition of kube-scheduler.yaml file ------------
+	master $ cat /etc/kubernetes/manifests/kube-scheduler.yaml
+	apiVersion: v1
+	kind: Pod
+	metadata:
+	  name: kube-scheduler
+	  namespace: kube-system
+	spec:
+	  containers:
+	  - command:
+	    - kube-scheduler
+	    - --bind-address=127.0.0.1
+	    - --kubeconfig=/etc/kubernetes/scheduler.conf
+	    - --leader-elect=true
+	    image: k8s.gcr.io/kube-scheduler:v1.16.0
+    	name: kube-scheduler
+    -----------------------------------------------------------------------
+
+    - We can create a custom scheduler by creating a copy of the same file and changing the require paramters like name,etc.
+
+	--leader-elect = false, If you don't have multiple masters
+
+	- If you have multiple schedulers and multiple master nodes then,
+		--leader-elect = true
+		--lock-object-name=my-custom-scheduler
+
+	- Next step is to configure new Pod/Deployment to use the new scheduler.
+
+	--------- pod definition -------------
+	metadata:
+	  name: nginx
+	spec:
+	  containers:
+	  - name: nginx
+	    image: nginx
+	  schedulerName: my-custom-scheduler
+	--------------------------------------
+
+	- How to know which scheduler picked the pod for scheduling.
+
+		# kubectl get events
+
+
+	- To check the logs of scheduler
+
+		# kubectl logs my-custom-scheduler --name-space=kube-system

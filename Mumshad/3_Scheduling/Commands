@@ -1,1 +1,237 @@
 ######### Commands ###########
+
+- Manual scheduling of a pod
+
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+      - containerPort: 8080
+  nodeName: ndoe01		<<<< Allocate a pod to the node
+
+
+# kubectl get pods --selector app=App1
+				
+				- Select the pods based on labels and selectors
+
+
+# k get pod --selector bu=finance
+# k get pod --selector env=dev
+				
+				- Select the pods based on labels
+
+
+# k get all --selector env=prod
+
+				- Select all the objects including pods, service, replicaset based on env=prod
+
+
+# k get pod --selector env=prod,bu=finance,tier=frontend
+	
+				- Select a pod based on many selectors
+
+
+# k describe node node01 | grep -i Taint
+
+# k taint nodes node01 spray=mortein:NoSchedule
+
+- Set a pod with follwing toleration
+
+			Image name: nginx
+			Key: spray
+			Value: mortein
+			Effect: NoSchedule
+			Status: Running
+
+	master $ cat bee.yaml
+	apiVersion: v1
+	kind: Pod
+	metadata:
+	  creationTimestamp: null
+	  labels:
+	    run: mosquito
+	  name: bee
+	spec:
+	  containers:
+	  - image: nginx
+	    name: mosquito
+	    resources: {}
+	  tolerations:
+	  - key: "spray"
+	    operator: "Equal"
+	    value: "mortein"
+	    effect: "NoSchedule"
+	  dnsPolicy: ClusterFirst
+	  restartPolicy: Never
+	status: {}
+
+
+# kubectl taint nodes master node-role.kubernetes.io/master:NoSchedule-
+node/master untainted
+
+			- Remove the taint of a node
+
+
+----- Labels, Selectors and NodeAffinity --------------
+
+# kubectl label node node01 color=blue
+	
+		- apply a label to the running node
+
+
+# kubectl run blue --image=nginx --replicas=6
+
+# k run blue --image=nginx --replicas=6 --dry-run -o yaml > blue.yaml
+
+		- Run deployment with 6 replicas
+
+------- definition to add affinity ----------
+   spec:
+      containers:
+      - image: nginx
+        name: blue
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: color
+                operator: In
+                values:
+                - blue
+-----------------------------------------------
+
+- Create a new deployment named 'red' with the NGINX image and 3 replicas, and ensure it gets placed on the master node only.
+Use the label - node-role.kubernetes.io/master - set on the master node.
+
+# k run red --image=nginx --replicas=3 --dry-run -o yaml > red.yaml
+
+------- definition to add to check only if label exists or not -------------
+   spec:
+      containers:
+      - image: nginx
+        name: red
+        resources: {}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: Exists
+----------------------------------------------------------------------------
+
+
+- Resource requirements and Limits :
+
+	# k describe pod rabbit
+
+		- Identify the CPU requirement set on Pod.
+
+	
+	# k get pod
+	NAME       READY   STATUS      RESTARTS   AGE
+	elephant   0/1     OOMKilled   5          3m14s
+
+		- OOMKilled means pod doesn't have sufficient memory.
+
+
+	# k get pod elephant -o yaml > new_pod.yaml
+
+		- To change the memory limit of a pod.
+
+
+- DaemonSet :
+
+	- How to create a DeamonSet.
+
+		1) First create a Deployment and redirect the output to yaml file.
+		2) Then edit the deployment and change the "kind: DaemonSet".
+
+	------------------------- Daemon Set -----------------------
+	apiVersion: apps/v1
+	kind: DaemonSet         	<<<< Change the Kind here.
+	metadata:
+	  name: monitroing-daemon
+	spec:
+	  selector:
+	    matchLabels:
+	      app: monitoring-daemon
+	  template:
+	    metadata:
+	      labels:
+	        app: monitoring-daemon
+	    spec:
+	      containers:
+	      - name: monitoring-daemon
+	        image: monitoring-daemon
+	------------------------------------------------------------
+
+
+	# k get daemonsets --all-namespaces
+
+			- To list down the daemonsets
+
+	# k describe daemonset kube-proxy --namespace=kube-system
+
+	# k describe daemonset weave-net -n kube-system	
+
+
+	- Deploy a DaemonSet for FluentD Logging.
+
+		Name: elasticsearch
+		Namespace: kube-system
+		Image: k8s.gcr.io/fluentd-elasticsearch:1.20
+
+		# k create deployment elasticsearch --image=k8s.gcr.io/fluentd-elasticsearch:1.20 -n kube-system --dry-run -o yaml > elastic-daemon.yaml
+
+		- Edit the elastic-daemon.yaml file and replace the kind with "DaemonSet", remove the unrequired things.
+
+		# vim elastic-daemon.yaml			
+
+		# k create -f elastic-daemon.yaml
+		daemonset.apps/elasticsearch created
+
+
+
+- Static pods :
+
+	- Create a static pod :
+
+	# kubectl run --restart=Never --image=busybox static-busybox --dry-run -o yaml --command -- sleep 1000 > /etc/kubernetes/manifests/static-busybox.yaml
+
+	---------------- static pod sleep def -------------------------
+	apiVersion: v1
+	kind: Pod
+	metadata:
+	  creationTimestamp: null  
+	  labels: 
+	    run: static-busybox  
+	    name: static-busybox
+	spec:
+	  containers:
+	  - command:			<<<< Here we specify commands
+	    - sleep
+	    - "1000"    
+	    image: busybox
+	    name: static-busybox
+	    resources: {}
+	  dnsPolicy: ClusterFirst
+	  restartPolicy: Never
+	status: {}
+	---------------------------------------------------------------
+
+
+	- Get the IP address of the nodes using the kubectl command.
+
+	# k get nodes -o wide
+	NAME     STATUS   ROLES    AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+	master   Ready    master   30m   v1.16.0   172.17.0.15   <none>        Ubuntu 16.04.6 LTS   4.4.0-166-generic   docker://18.9.7
+	node01   Ready    <none>   29m   v1.16.0   172.17.0.19   <none>        Ubuntu 16.04.6 LTS   4.4.0-166-generic   docker://18.9.7
+
+
+	- Look for the static pod manifest path.
+
+	# cat /var/lib/kubelet/config.yaml | grep -i static
+	staticPodPath: /etc/just-to-mess-with-you
