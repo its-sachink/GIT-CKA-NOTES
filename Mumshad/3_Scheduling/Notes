@@ -382,6 +382,33 @@ spec:
 		--leader-elect = true
 		--lock-object-name=my-custom-scheduler
 
+	- Also you need to specify the new scheduler name, so the new scheduler definition would be.
+	----------------- definition of kube-scheduler.yaml file --------------
+	master $ cat /etc/kubernetes/manifests/my-custom-scheduler.yaml
+	apiVersion: v1
+	kind: Pod
+	metadata:
+	  name: my-custom-scheduler
+	  namespace: kube-system
+	spec:
+	  containers:
+	  - command:
+	    - kube-scheduler
+	    - --bind-address=127.0.0.1
+	    - --kubeconfig=/etc/kubernetes/scheduler.conf
+	    - --leader-elect=true
+	    - --scheduler-name=my-custom-scheduler
+	    - --lock-object-name=my-customer-scheduler
+	    image: k8s.gcr.io/kube-scheduler:v1.16.0
+    	name: kube-scheduler	
+	-----------------------------------------------------------------------
+
+	- Next step is to make sure the new Scheduler is in running state.
+
+	# kubectl get pods --namespace=kube-system
+
+
+
 	- Next step is to configure new Pod/Deployment to use the new scheduler.
 
 	--------- pod definition -------------
@@ -399,6 +426,8 @@ spec:
 		# kubectl get events
 
 
-	- To check the logs of scheduler
+	- To check the logs of scheduler.
 
 		# kubectl logs my-custom-scheduler --name-space=kube-system
+
+

@@ -1,0 +1,31 @@
+- Logging :
+
+	- Monitoring a kubernetes cluster:
+
+		- Monitor node level metrics, cpu, memory, disk consumption and the Pod level metrics.
+
+		- Heapter is depricted and now we use Metrics Server. Metrics server is an in memory monitoring solutions.
+		- Kubelet contains cAdvisor which retrieves peformance metrics from the pods and expose them through the Kubelet API and make it available to the Metrics Server.
+		- You need to install the Metrics server explicitly.
+
+		# git clone https://github.com/kubernetes/metrics-server
+		# kubectl create -f deploy/1.8/
+
+		- To view the performance of pod and nodes
+		
+		# kubectl top node
+		# kubectl top pod
+
+
+	- Managing Application logs.
+
+		- Logging docker running on kubernetes.
+
+			- If a pod contains a single docker.
+
+				# kubectl logs -f event-simulator-pod
+
+
+			- If a pod contains multiple docker containers.
+
+				#kubectl logs -f event-simulator-pod  pod-name-1

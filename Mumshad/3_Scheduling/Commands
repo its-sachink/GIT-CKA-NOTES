@@ -235,3 +235,62 @@ Use the label - node-role.kubernetes.io/master - set on the master node.
 
 	# cat /var/lib/kubelet/config.yaml | grep -i static
 	staticPodPath: /etc/just-to-mess-with-you
+
+
+- Multiple Scheduler:
+
+	- Deploy an additional scheduler to the cluster following the given specification.
+		- Use the manifest file used by kubeadm tool. Use a different port than the one used by the current one.
+
+		Namespace: kube-system
+		Name: my-scheduler
+		Status: Running
+		Custom Scheduler Name
+
+		# cd /etc/kubernetes/manifests/
+		# cp kube-scheduler.yaml my-scheduler.yaml
+		--------------------- edit the my-scheduler -----------------------------
+		cat my-scheduler.yaml
+		apiVersion: v1
+		kind: Pod
+		metadata:
+		  creationTimestamp: null
+		  labels:
+		    component: kube-scheduler
+		    tier: control-plane
+		  name: my-scheduler           <<<<
+		  namespace: kube-system
+		spec:
+		  containers:
+		  - command:
+		    - kube-scheduler
+		    - --authentication-kubeconfig=/etc/kubernetes/scheduler.conf
+		    - --authorization-kubeconfig=/etc/kubernetes/scheduler.conf
+		    - --bind-address=127.0.0.1
+		    - --kubeconfig=/etc/kubernetes/scheduler.conf
+    		- --leader-elect=false
+    		- --port=10282
+		    - --scheduler-name=my-scheduler          <<<<
+		    - --secure-port=0
+		    image: k8s.gcr.io/kube-scheduler:v1.16.0
+		    imagePullPolicy: IfNotPresent
+		-------------------------------------------------------------------------
+
+		# k get pod -n kube-system | grep -i my-scheduler
+		my-scheduler-master              1/1     Running            0          4m7s
+
+
+	- create a POD with the new custom scheduler.
+
+	------------------------------------------------
+	cat nginx-pod.yaml
+	apiVersion: v1
+	kind: Pod
+	metadata:
+	  name: nginx
+	spec:
+	  containers:
+	  -  image: nginx
+	     name: nginx
+	  schedulerName: my-scheduler
+	------------------------------------------------
