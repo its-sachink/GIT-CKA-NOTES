@@ -1,0 +1,345 @@
+########### Commands #############
+
+- Change strategy from RollingUpdate to Recreate
+
+	# k edit deployment frontend
+
+	-------------------------------------------------
+	spec:
+	  minReadySeconds: 20
+	  progressDeadlineSeconds: 600
+	  replicas: 4
+	  revisionHistoryLimit: 10
+	  selector:
+	    matchLabels:
+	      name: webapp
+	  strategy:
+	    rollingUpdate:
+	      maxSurge: 25%
+	      maxUnavailable: 25%
+	    type: RollingUpdate
+	  template:
+	-------------------------------------------------
+
+	to
+
+	-------------------------------------------------
+	spec:
+	  minReadySeconds: 20
+	  progressDeadlineSeconds: 600
+	  replicas: 4
+	  revisionHistoryLimit: 10
+	  selector:
+	    matchLabels:
+	      name: webapp
+	  strategy:
+	    type: Recreate
+	  template:
+	    metadata:
+	      creationTimestamp: null
+	-------------------------------------------------
+
+
+
+- Create a pod with the ubuntu image to run a container to sleep for 5000 seconds. Modify the file ubuntu-sleeper-2.yaml.
+
+	# k run ubuntu-sleeper-2 --image=ubuntu --restart=Never --dry-run -o yaml > ubuntu-sleeper-2.yaml
+	--------------------------------------------------
+	cat ubuntu-sleeper-2.yaml
+	apiVersion: v1
+	kind: Pod
+	metadata:  creationTimestamp: null
+	  labels:    run: ubuntu-sleeper-2
+	  name: ubuntu-sleeper-2
+	spec:
+	  containers:
+	  - image: ubuntu
+	    name: ubuntu-sleeper-2    
+	    command: ["sleep","5000"]
+	  dnsPolicy: ClusterFirst
+	  restartPolicy: Never
+	status: {}
+	--------------------------------------------------
+
+- Fix the error in ubuntu3
+
+	--------------------------------------------------
+	cat ubuntu-sleeper-3.yaml
+	apiVersion: v1
+	kind: Pod
+	metadata:
+	  name: ubuntu-sleeper-3
+	spec:
+	  containers:
+	  - name: ubuntu
+	    image: ubuntu
+	    command:
+	      - "sleep"
+	      - "1200"			<<<< Check that this should be in doubt quotes
+	--------------------------------------------------
+
+- For a reference you might need to create like this.
+
+	Note,Tip: Always prefer this JSON format.
+
+	-------------- Dockerfile ----------------------------
+	cat Dockerfile2
+	FROM python:3.6-alpine
+
+	RUN pip install flask
+
+	COPY . /opt/
+
+	EXPOSE 8080
+
+	WORKDIR /opt
+
+	ENTRYPOINT ["python", "app.py"]
+
+	CMD ["--color", "red"]
+	------------------------------------------------------
+
+	---------------- webapp-color-pod-2.yaml --------------
+	apiVersion: v1
+	kind: Pod
+	metadata:
+	  name: webapp-green
+	  labels:
+	      name: webapp-green
+	spec:
+	  containers:
+	  - name: simple-webapp
+	    image: kodekloud/webapp-color
+	    command: ["python", "app.py"]
+	    args: ["--color", "pink"]
+	-------------------------------------------------------
+
+
+- Create a pod with the given specifications. By default it displays a 'blue' background. Set the given command line arguments to change it to 'green'
+
+
+	# k run webapp-green --restart=Never --image=kodekloud/webapp-color --dry-run -o yaml > webapp-green.yaml
+	-------------------------------------------------------
+	cat /var/answers/answer-webapp-color-green.yaml
+	apiVersion: v1
+	kind: Pod
+	metadata:
+	  name: webapp-green
+	  labels:
+	      name: webapp-green
+	spec:
+	  containers:
+	  - name: simple-webapp
+	    image: kodekloud/webapp-color
+	    args: ["--color", "green"]
+    -------------------------------------------------------
+
+
+- Environment variables and configmaps :
+
+	- Update the environment variable on the POD to display a 'green' background.
+
+	------------------------------------------------------
+	spec:
+	  containers:
+	  - env:
+	    - name: APP_COLOR
+	      value: green
+	    image: kodekloud/webapp-color
+	    imagePullPolicy: Always
+	------------------------------------------------------    
+
+
+	- Create a new ConfigMap for the 'webapp-color' POD. Use the spec given on the right.
+		ConfigName Name: webapp-config-map
+		Data: APP_COLOR=darkblue
+
+		# k create cm webapp-config-map --dry-run -o yaml \ 
+			--from-literal=APP_COLOR=darkblue > webapp-config-map.yaml
+
+		# k create -f webapp-config-map.yaml
+
+
+	- Update the environment variable on the POD use the newly created ConfigMap.
+
+	----------------------------------------
+	 spec:
+	    containers:
+	    - envFrom:
+	        - configMapRef:
+	            name: webapp-configmap
+	      image: kodekloud/webapp-color
+	      imagePullPolicy: Always
+	      name: webapp-color
+	----------------------------------------
+
+
+- Secrets in kubernetes: 
+
+	- To list down the number of secrets:
+		
+		# kubectl get secrets
+
+	
+	- To get the details of the secrets:
+
+		# kubectl get secrets secret-name -o yaml | less		<<<< check for the key:value here
+
+
+	- You can create a secret using below command
+
+		# k create secret generic db-secret \
+			--from-literal=DB_Host=sql01 \ 
+			--from-literal=DB_User=root \
+			--from-literal=DB_Password=password123
+
+	- Also you can create a secret file in exam using below syntax :
+
+		# k create secret generic db-secret \
+			--from-literal=DB_Host=sql01 \
+			--from-literal=DB_User=root \
+			--from-literal=DB_Password=password123 \
+			--dry-run -o yaml > db-secret-1.yaml			<<<< The base64 is automaticall encoded
+
+		# cat db-secret-1.yaml
+			apiVersion: v1
+			data:
+			  DB_Host: c3FsMDE=
+			  DB_Password: cGFzc3dvcmQxMjM=
+			  DB_User: cm9vdA==
+			kind: Secret
+			metadata:
+			  creationTimestamp: null
+			  name: db-secret
+
+
+	- Refer a Secret in pod definition file
+
+		--------------------------------------------------
+		spec:
+		  containers:
+		  - image: kodekloud/simple-webapp-mysql
+		    imagePullPolicy: Always
+		    name: webapp
+		    envFrom:
+		      - secretRef:					<<<<
+		          name: app-secret
+		--------------------------------------------------
+
+
+- MultiContainer Pod :
+
+
+	# k run yellow --restart=Never --image=busybox --dry-run -o yaml > yellow.yaml
+
+	------------------------------------------------
+	cat yellow.yaml
+		apiVersion: v1
+		kind: Pod
+		metadata:
+		  creationTimestamp: null
+		  labels:
+		    run: yellow
+		  name: yellow
+		spec:
+		  containers:
+		  - image: busybox
+		    name: lemon
+		  - image: gold
+		    name: redis
+		  dnsPolicy: ClusterFirst
+		  restartPolicy: Never
+	------------------------------------------------
+
+
+	- Inspect the Kibana UI using the link above your terminal. There shouldn't be any logs for now.
+		We will configure a sidecar container for the application to send logs to Elastic Search.
+
+		- Edit the pod to add a sidecar container to send logs to ElasticSearch. Mount the log volume to the sidecar container.
+		
+			Name: app
+			Container Name: sidecar
+			Container Image: kodekloud/filebeat-configured
+			Volume Mount: log-volume
+			Mount Path: /var/log/event-simulator/
+			Existing Container Name: app
+			Existing Container Image: kodekloud/event-simulator
+
+			---------------------------------------------------------
+			cat /var/answers/answer-app.yaml
+			apiVersion: v1
+			kind: Pod
+			metadata:
+			  name: app
+			  namespace: elastic-stack
+			  labels:
+			    name: app
+			spec:
+			  containers:
+			  - name: app
+			    image: kodekloud/event-simulator
+			    volumeMounts:
+			    - mountPath: /log
+			      name: log-volume
+
+			  - name: sidecar
+			    image: kodekloud/filebeat-configured
+			    volumeMounts:
+			    - mountPath: /var/log/event-simulator/
+			      name: log-volume
+
+			  volumes:
+			  - name: log-volume
+			    hostPath:
+			      # directory location on host
+			      path: /var/log/webapp
+			      # this field is optional
+			      type: DirectoryOrCreate
+			---------------------------------------------------------
+
+
+	- InitContainers :
+
+	- Indentify the Pods that contains InitContainers
+
+	# k get pod blue -o yaml | grep -i init
+	  initContainers:
+	    name: init-myservice
+	    type: Initialized
+	  initContainerStatuses:
+
+
+	-------------------- example -----------------------------
+	# cat red.yaml
+		apiVersion: v1
+		kind: Pod
+		metadata:
+		  creationTimestamp: "2020-05-24T18:57:55Z"
+		  name: red
+		  namespace: default
+		  resourceVersion: "609"
+		  selfLink: /api/v1/namespaces/default/pods/red
+		  uid: 03eb98f9-53c3-4dee-a78e-a2e1c7d399ae
+		spec:
+		  containers:
+		  - command:
+		    - sh
+		    - -c
+		    - echo The app is running! && sleep 3600
+		    image: busybox:1.28
+		    imagePullPolicy: IfNotPresent
+		    name: red-container
+		    resources: {}
+		    terminationMessagePath: /dev/termination-log
+		    terminationMessagePolicy: File
+		    volumeMounts:
+		    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+		      name: default-token-kjt2c
+		      readOnly: true
+		  initContainers:
+		  - name : redbusy
+		    image: busybox
+		    command: ["sleep","20"]
+		  dnsPolicy: ClusterFirst
+		  enableServiceLinks: true
+	----------------------------------------------------------
