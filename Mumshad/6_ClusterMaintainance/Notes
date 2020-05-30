@@ -1,1 +1,238 @@
 ############### Notes ##############
+
+- OS Upgrades :
+
+	- If the node is down for more than 5 minutes, kubernetes consider those Pods and Nodes as dead.
+		- If Pod are part of Replicaset then those pods are scheduled on other nodes.
+		- If Pod are not part of Replicaset they are lost.
+
+		- Pod Eviction TimeOut = The time is waits for a Pod to come back online on other node. It is by default 5 mins, set on the controller manager. The master node waits for 5 mins before considering the node as dead.
+
+			# kube-controller-manager --pod-eviction-timeout=5m0s
+
+		
+		# kubectl drain node-1
+
+			- To terminates the pods on node1 and start it on other nodes for maintainance purpose
+			- The node is marked as unschedulable/uncordon
+
+
+		# Kubectl cordon node-1
+
+			- Simple marks a node unschedulable, new Pods are not scheduled on the node
+
+		# kubectl uncordon node-1
+
+			- Marks it as schedulable for new Pods, the older Pods does not come online
+			- New Pods are created on this node
+
+
+
+
+- Kubernetes Software Versions :
+
+
+	- Kubernetes v1.18.4
+
+				1 - Major version
+				18 - Minor version, are released in few months with features and functionalities
+				4 - Patch, are released frequently
+
+		- Control Plane components have same versions which includes 
+					- kube-apiserver
+					- controller-manager
+					- kube-scheduler
+					- kubelet
+					- kube-proxy
+					- kubectl
+
+		- Below components maintain there own versions
+					- ETCD
+					- CoreDNS
+
+
+
+
+- Cluster Upgrade Process
+
+	- We will focus only on Control Plane components and will not see now ETCD and CoreDNS.
+
+	- Control Plane components :
+		- kube-apiserver
+		- controller-manager
+		- kube-scheduler
+
+		- kubelet
+		- kube-proxy
+
+		- kubectl
+
+
+	- Components in the Control plane can be at different version levels :
+
+		- kube-apiserver (none of the component should be higher than kube-apiserver)  	- 	X
+		- controller-manager, kube-scheduler can be at one version lower				-	X-1
+		- kubelet, kube-proxy can be at 2 versions lower								-	X-2
+		- Kubectl can be at X+1, X, X-1 versions 										-   X+1,X,X-1
+
+		-------------------------------------------------------
+		kube-apiserver (X) 1.10
+
+		controller-manager, kube-scheduler (X-1) 1.9, 1.10							kubectl (X+1,X,X-1)
+
+		kubelet, kube-proxy (X-2) 1.8, 1.9, 1.10
+		-------------------------------------------------------
+
+		- Kubernetes supports upto latest 3 minor versions for upgrade
+			- So version 1.12 being the latest version kubernetes supports 1.12, 1.11 and 1.10
+			- for 1.13 : only 1.13, 1.12 and 1.11 are supported
+
+		- Recommended approach to upgrade is one minor level at a time.
+			1.10 -> 1.11 -> 1.12 -> 1.13
+
+
+		- Upgrading the cluster includes 2 steps.
+			- Upgrade master nodes : while upgrading the control plane components(kubeapi-server, scheduler, controller-manager) go down. 
+				- But the worker nodes and application keeps on running. You cannot access the cluster, deploy, delete, modify any applications
+
+			- Upgrade worked nodes : 
+
+				- Rolling upgrade : Upgrade one node at a time using rolling upgrade.
+				- Add new nodes to cluster, move work load to new node and remove older one : It is possible in cloud.
+
+				- example upgrading a cluster from 1.11 to 1.13
+
+					# kubeadm upgrade plan
+
+
+				- Steps to upgrade a cluster from 1.11 to 1.13 on the master node
+
+					- upgrade a kubeadm component
+
+						# apt-get upgrade -y kubeadm=1.12.0-00
+
+					- Then upgrade the cluster
+
+						# kubeadm upgrade apply v1.12.0
+							- "kubectl get nodes" will still show the version as 1.11.4 as it shows the version of kubelets
+							- Here we consider that kubelet is installed on master node
+
+					
+					- Now upgrade kubelets on master node
+
+						# apt-get upgrade -y kubelet=1.12.0
+
+					- Now you have upgrade the worker node to 1.12 using below commands
+
+						# kubectl drain node-1
+						# apt-get upgrade -y kubeadm=1.12.0-00
+						# apt-get upgrade -y kubelet=1.12.0-00
+
+						# kubeadm upgrade node config --kubelet-version v1.12.0
+									- Update the node configuration
+
+						# systemctl restart kubelet
+
+						# kubectl uncordon node-1
+
+
+
+- Backup and restore methods :
+
+	- What you should consider backing up in kubernetes cluster
+			- Resource configuration
+			- ETCD Cluster
+			- Persistent Volumes
+
+
+			- Resource configuration : contains definitions of pod, deployment, configmap, etc.
+				- This is backup quering/using the kubeapi-server
+				- You can store these resource configuration in github
+				- Someone might also have used the imperative method to configure the resources, in that case you will have to query the API server using "kubectl" and then save the resource configurations.
+
+				# kubectl get all --all-namespaces -o yaml > all-deploy-services.yaml
+
+
+
+			- ETCD cluster : Stores information about the state of the cluster.
+
+				---------------- etcd.service ------------------
+				--data-dir=/var/lib/etcd
+				------------------------------------------------
+
+				- You can also use the build-in snapshot utility to take the backup
+
+					# ETCDCTL_API=3 etcdctl \
+							snapshot save snapshot.db
+
+					# ETCDCTL_API=3 etcdctl \
+							snapshot status snapshot.db			<<<< To view the status of the snapshot
+
+
+				- To restore the cluster from the snapshot backup
+
+					- stop the API service, as the KubeAPI server depends on it
+
+						# service kube-apiserver stop
+
+					- Restore from backup
+
+						# ETCDCTL_API=3 etcdctl \
+							snapshot restore snapshot.db \
+							--data-dir /var/lib/etcd-from-backup \
+							--initial-cluster master-1=https://192.168.5.11:2380,master-2=https://192.168.5.12:2380 \
+							--initial-cluster-token etcd-cluster-1 \
+							--initial-advertise-peer-urls https://${INTERNAL_IP}:2380
+
+
+					- Configure the ETCD configuration file to use the new cluster token
+
+						--initial-cluster-token etcd-cluster-1 \
+						....
+						....
+						--data-dir=/var/lib/etcd-from-backup \
+
+
+					- reload the service daemon and restart the ETCD service
+
+						# systemctl daemon-reload
+
+						# service etcd restart
+
+
+					- start the kubeapi-server service
+
+						# service kube-apiserver start
+
+
+					-** For ETCD commands remember to specify certificate files for authentication and endpoints
+
+						# ETCDCTL_API=3 etcdctl \
+							snapshot save snapshot.db \
+							--endpoints=https://127.0.0.1:2379 \
+							--cacert=/etc/etcd/ca.cert \
+							--cert=/etc/etcd/etcd-server.crt \
+							--key=/etc/etcd/etcd-server.key
+
+
+			- Working with ETCDCTL :
+
+				- The ETCD key-value database is deployed as a static pod on the master. The version used is v3.
+				- Make sure that you set the ETCDCTL_API to 3.
+
+						# export ETCDCTL_API=3
+						# etcdctl version
+
+						# etcdctl --help
+
+						# etcdctl snapshot save -h
+
+						# etcdctl 
+							--cacert
+							--cert
+							--endpoints
+							--key
+
+						# etcdctl snapshot restore -h
+
+

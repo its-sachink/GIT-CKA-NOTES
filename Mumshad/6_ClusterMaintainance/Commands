@@ -1,1 +1,172 @@
 ############### Commands ##############
+
+- Practice OS upgrades :
+
+	- On which nodes are the applications hosted on?
+
+		# k get pods -o wide
+
+		NAME                    READY   STATUS    RESTARTS   AGE   IP          NODE     NOMINATED NODE   READINESS GATES
+		blue-68df9fb9d9-f6spd   1/1     Running   0          66s   10.46.0.1   node02   <none>           <none>blue-68df9fb9d9-k4hkd   1/1     Running   0          66s   10.40.0.2   node01   <none>           <none>
+		blue-68df9fb9d9-xln5t   1/1     Running   0          66s   10.88.0.3   node03   <none>           <none>
+		red-5dc59c9654-m8fdc    1/1     Running   0          66s   10.40.0.1   node01   <none>           <none>
+		red-5dc59c9654-mmtqw    1/1     Running   0          66s   10.88.0.2   node03   <none>           <none>
+
+
+	- Empty the node "node01" of all applications and mark it unschedulable.
+	
+		# kubectl drain node01 --ignore-daemonsets
+
+
+	- Configure the node "node01" to be schedulable again.
+
+		# k uncordon node01
+
+
+	- Why are there no pods placed on the master node?
+
+		# k describe node master
+
+
+		# k cordon node02
+
+
+
+- Practice Cluster Upgrade Process :
+
+	- Current version of the cluster ?
+
+		# k version --short
+
+
+	- How many nodes can host workloads in this cluster?
+
+		# k get pod -o wide
+
+
+	- What is the latest stable version available for upgrade?
+
+		# kubeadm upgrade plan
+
+
+	- Drain the master node of workloads and mark it UnSchedulable
+
+		# kubectl drain master --ignore-daemonsets
+
+
+	- Upgrade the master components to exact version v1.17.0
+			- Note: While upgrading kubelet, if you hit dependency issue while running the apt-get upgrade kubelet command, use the apt install kubelet=1.17.0-00 command instead
+
+		# apt install kubeadm=1.17.0-00
+		# kubeadm upgrade apply v1.17.0
+
+		# apt install kubelet=1.17.0-00
+
+
+	- Mark the master node as "Schedulable" again
+
+		# kubectl uncordon master
+
+
+	- Drain the worker node of the workloads and mark it UnSchedulable
+
+		# kubectl drain node01 --ignore-daemonsets
+
+
+	- Upgrade the worker node to the exact version v1.17.0	
+
+		- get the IP address and ssh into it.
+
+			# kubectl get nodes -o wide			<<<< will give you IP address
+			# ssh node01
+
+			# apt install kubeadm=1.17.0-00
+			# apt install kubelet=1.17.0-00
+
+
+			# kubelet --version | cut -d ' ' -f 2
+			v1.17.0
+
+			# kubeadm upgrade node config --kubelet-version $(kubelet --version | cut -d ' ' -f 2)
+			Command "config" is deprecated, use "kubeadm upgrade node" instead
+
+
+	- Uncordon node01
+
+		# kubectl uncordon node01
+			node/node01 uncordoned
+
+
+
+
+- Practise Backup and Restore method :
+
+
+	- To know the version of ETCD cluster
+
+		# kubectl logs etcd-master -n kube-system | head
+
+		# kubectl describe pod etcd-master -n kube-system
+
+
+	- At what address do you reach the ETCD cluster from your master node? What is the address of etcd-cluster
+
+		# kubectl describe pod etcd-master -n kube-system | grep -i listen
+      --listen-client-urls=https://127.0.0.1:2379,https://172.17.0.48:2379		<<<<< Where ETCD listen
+      --listen-metrics-urls=http://127.0.0.1:2381
+      --listen-peer-urls=https://172.17.0.48:2380
+
+
+    - Where is the ETCD server certificate file located?
+
+    	# k describe pod etcd-master -n kube-system | grep -i server.crt
+      --cert-file=/etc/kubernetes/pki/etcd/server.crt
+
+
+    - Where is the ETCD CA Certificate file located?
+
+    	# k describe pod etcd-master -n kube-system | grep -i "ca.crt"
+      --peer-trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt
+      --trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt        <<<<<<
+
+
+    - The master nodes in our cluster are planned for a regular maintenance reboot tonight. While we do not anticipate anything to go wrong, we are required to take the necessary backups. Take a snapshot of the ETCD database using the built-in snapshot functionality.
+     	Store the backup file at location /tmp/snapshot-pre-boot.db
+
+     	# export ETCDCTL_API=3
+
+     	# k describe pod etcd-master -n kube-system | egrep -i "listen|ca.crt|server.crt|server.key"
+		      --cert-file=/etc/kubernetes/pki/etcd/server.crt
+		      --key-file=/etc/kubernetes/pki/etcd/server.key
+		      --listen-client-urls=https://127.0.0.1:2379,https://172.17.0.48:2379
+		      --listen-metrics-urls=http://127.0.0.1:2381
+		      --listen-peer-urls=https://172.17.0.48:2380
+		      --peer-trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt
+		      --trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt
+
+
+      	# etcdctl \
+      	 --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+		 --cert=/etc/kubernetes/pki/etcd/server.crt \
+		 --key=/etc/kubernetes/pki/etcd/server.key \
+		 snapshot save /tmp/snapshot-pre-boot.db
+
+				Snapshot saved at /tmp/snapshot-pre-boot.db
+
+
+    - Restore the original state of the cluster using the backup file.
+
+
+	#  etcdctl --endpoints=https://[127.0.0.1]:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+     --name=master \
+     --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key \
+     --data-dir /var/lib/etcd-from-backup \
+     --initial-cluster=master=https://127.0.0.1:2380 \
+     --initial-cluster-token etcd-cluster-1 \
+     --initial-advertise-peer-urls=https://127.0.0.1:2380 \
+     snapshot restore /tmp/snapshot-pre-boot.db
+
+
+    - Then you need to edit the '/etc/kubernetes/manifests/etcd.yaml' file accordingly
+
+    https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/practice-questions-answers/cluster-maintenance/backup-etcd/etcd-backup-and-restore.md
