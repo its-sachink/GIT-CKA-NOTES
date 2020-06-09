@@ -1,0 +1,102 @@
+############# Notes ###############
+
+
+
+	- Storage :
+
+		- Intro to docker storage : Storage in docker
+
+			- Filesystem of docker on local filesystem(host)
+
+				- /var/lib/docker
+					- aufs
+					- containers
+					- image
+					- volumes
+
+			- Dockers are build using the "layered architecture". Each layer is an instruction/command specified in the Dockerfile.
+
+			Layer 1. Base Ubuntu Layer
+			Layer 2. Changes in apt packages
+			Layer 3. Changes in pip packages
+			Layer 4. Source code
+			Layer 5. update Entrypoint with "flask" command
+
+			- This way the layers can be reused to build other containers with slight modifications.
+
+				- Image layer : It is a "Read Only" layer
+				- Container layer : It is a "Read Write" layer, the file from the Image layer are modified as per requirement while creating the container
+
+				- When the container is deleted then all the data stored in the container layer is also deleted.
+				- So if we want the data to persist we could add a persist volume to the container.
+
+					# docker volume create data_volume
+					# docker run -v data_volume:/var/lib/mysql  mysql
+
+						- The data_volume is created on the host at following location, 
+							/var/lib/docker/volumes/data_volume
+
+
+
+				- What if we didn't create a "docker volume" command, in that case docker will automatically create a volume in this case.
+
+					# docker run -v data_volume2:/var/lib/mysql  mysql
+						- This is called volume mounting. i.e only from location /var/lib/docker.
+
+
+				- What if we have our volumes on some external storage like NFS.
+
+					# docker run -v /data/mysql:/var/lib/mysql  mysql
+						- This is called bind mounting. i.e from any location.
+
+
+				- "-v" is old style, "-mount" is new style as below
+
+					# docker run \
+					--mount type=bind,source=/data/mysql,target=/var/lib/mysql  mysql
+
+
+				- So who is respondible for maintaing a layered architecture, it is storage drivers. Some of the common storage drivers are,
+					- AUFS
+					- ZFS
+					- BTRFS
+					- Device Mapper
+					- Overlay
+					- Overlay2
+
+
+		- Volume driver plugins in Docker
+			- Volume driver plugins manages the Docker volume, the default volume plugin is "local".
+
+			- Different volume driver plugins are as follows.
+				- Local
+				- Convoy
+				- gce-docker
+				- GlusterFS
+				- NetApp
+				- RexRay - used for AWS EBS volumes
+				- Portworx
+				- VMware vSphere Storage
+
+
+			- If we want to specify the plugins explicitly we can do that as below.
+
+				# docker run -it \
+					--name mysql \
+					--volume-driver rexray,ebs \
+					--mount src=ebs-vol,target=/var/lib/mysql \
+					mysql
+
+
+		- Container Storage Interface
+
+			- Container runtime interface(CRI) : is a standard which defines how kubernetes would interact with other container runtime like docker, rocket, cri-o
+
+			- Container networking interface(CNI) : is a standard to develop the plugin for any network vendor to interact with the kubernetes like flannel, etc.
+
+			- Container storage interface(CSI) : You can write your own driver for your storage to work with the kubernetes. ex : islion, hpe, hitachi, amazon ebs, dell emc, etc.
+
+				- CSI is a universal standard for kubernetes, mesos, cloudfoundary. It is used to define the operations like create, delete volumes etc.
+
+
+	- Volumes :				
