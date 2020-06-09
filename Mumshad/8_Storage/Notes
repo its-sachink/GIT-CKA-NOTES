@@ -99,4 +99,143 @@
 				- CSI is a universal standard for kubernetes, mesos, cloudfoundary. It is used to define the operations like create, delete volumes etc.
 
 
-	- Volumes :				
+	- Volumes :
+
+		- Containers are transient which means, they are called upon to process data and destroyed when finished.
+		- To persist data we attach volumes to the containers.
+
+		- Pod are also transient in nature and we can attach volumes to Pods.
+
+
+		----------------------------- Volumes and Mounts ----------------------------------
+		apiVersion: v1
+		kind: Pod
+		metadata:
+		  name: random-number-generator
+		spec:
+		  containers:
+		  - image: alpine
+		    name: alpine
+		    command: ["/bin/sh","-c"]
+		    args: ["shuf -i 0-100 -n 1 >> /opt/number.out"]
+		    volumeMounts:
+		    - mountPath: /opt
+		      name: data-volume
+
+		  volumes:
+		  - name: data-volume
+		    hostPath:
+		      path: /data              <<<< This is the host path
+ 			  type: Directory
+		-----------------------------------------------------------------------------------
+
+		- mounting on "/data" for kubernetes which is having multiple hosts is not feasible, hence we can use the cloud volume storage like aws-volumes, glusterfs, netapp, etc.
+
+
+		-------------------------------------------
+		  volumes:
+		  - name: data-volume
+		    awsElasticBlockStore:
+		    	volumeID: <volume-id>
+		    	fsType: ext4
+		-------------------------------------------
+
+
+	- Persistent Volumes :
+
+		- Instead of managing the storage at the Pod level like in above we would like to manage centrally in kubernetes. We would like to configure it in a way as a pool of storage and then we can carve out as and when required.
+
+		- Persistent Volume : Is a clusterwide pool of storage volumes to be used by application deployed on a cluster.
+			- The users are now select storage from this pools using persistent volumes claims.
+
+			PVC : a volume chaked out of PV.
+
+
+		----------------------------- pv-definition.yaml ----------------------------------
+		apiVersion: v1
+		kind: PersistentVolume
+		metadata:
+		  name: pv-vol1
+		spec:
+			accessModes:
+				- ReadWriteOnce
+			capacity:
+				storage: 1Gi
+
+			awsElasticBlockStore:
+				volumeID: <volume-id>
+				fsType: ext4
+		-----------------------------------------------------------------------------------
+
+			# kubectl create -f pv-definition.yaml
+
+			# kubectl get persistentvolume
+
+
+	- Persistent Volumes Claims :
+
+		- To claim the volumes configured above. To make the storage available to a node.
+
+		- PV and PVS are 2 seperate objects in a kubernetes namespace.
+
+		- An kubernetes Administrator creates a set of PV and a user create PVC to use the storage.
+
+		- Once the persistent volumes claims are created it binds those claims to the persistent volumes created on the kubernetes.
+		- Every PVC is bound to only a single PV.
+
+		- PVC : is at Pod/user request side
+		  PV : is at a kubernetes side
+
+		- Kubernetes tries to bind a PVC to a PV which has a sufficient capacity and any other properties that matches 
+
+
+		----------------------------- pvc-definition.yaml ----------------------------------
+		apiVersion: v1
+		kind: PersistentVolumeClaim
+		metadata:
+		  name: myclaim
+		spec:
+			accessModes:
+				- ReadWriteOnce
+
+			resources:
+				requests:
+					storage: 500Mi
+		-----------------------------------------------------------------------------------
+
+			# kubectl create -f pvc-definition.yaml
+			# kubectl get persistentvolumeclaim
+
+			# kubectl delete persistentvolumeclaim myclaim
+
+			persistentVolumeReclaimPolicy: Retain
+			persistentVolumeReclaimPolicy: Delete
+			persistentVolumeReclaimPolicy: Recycle		<<<< the data is scrubed
+
+
+
+	- Using PVCs in PODs :
+
+		- Once you create a PVC use it in a POD definition file by specifying the PVC Claim name under persistentVolumeClaim section in the volumes section like this:
+
+		----------------------------- pod-definition.yaml ----------------------------------
+		apiVersion: v1
+		kind: Pod
+		metadata:
+		  name: mypod
+		spec:
+		  containers:
+		    - name: myfrontend
+		      image: nginx
+		      volumeMounts:
+		      - mountPath: "/var/www/html"
+		        name: mypd
+		  volumes:
+		    - name: mypd
+		      persistentVolumeClaim:
+		        claimName: myclaim
+		------------------------------------------------------------------------------------
+
+			- The same is true for ReplicaSets or Deployments. Add this to the pod template section of a Deployment on ReplicaSet.
+
+			- URL: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#claims-as-volumes
