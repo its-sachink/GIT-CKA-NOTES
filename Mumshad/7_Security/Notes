@@ -865,7 +865,15 @@
 
 	- Security Context :
 
-		- Security settings can be configured at a Pod level or at container level.
+		- We have option to define the set of security standard while running the container.
+
+			- Like the ID of the user to run the container
+				# docker run --user=1001 ubuntu sleep 3600
+
+			- The linux capability that can we added or removed from the container.
+				# docker run --cap-add MAC_ADMIN ubuntu
+
+		- The above Security settings can be configured at a Pod level or at container level as well.
 		- If settings is configured at the Pod level then it will be applied to all the container in that Pod.
 		- If setting is configured at both the Pod and Container level, the setting at the Container level will override at the Pod level.
 
@@ -886,7 +894,22 @@
 		------------------------------------------------------
 
 
-		- To set at container level
+		- To set at container level move the "securityContext" downwards.
+		------------------------------------------------------
+		apiVersion: v1
+		kind: Pod
+		metadata:
+		  name: web-pod
+		spec:
+		  containers:
+		  	- name: ubuntu
+		  	  image: ubuntu
+		  	  command: ["sleep", "3600"]
+		  	  securityContext:
+		    	runAsUser: 1000
+		------------------------------------------------------
+
+		- To add capabilities use the capabilities option to add to the POD.
 		------------------------------------------------------
 		apiVersion: v1
 		kind: Pod
@@ -902,3 +925,74 @@
 		    	capabilities:
 		    	    add: ["MAC_ADMIN"]
 		------------------------------------------------------
+
+		- Note : Capabilities are only supported at container level and not at POD level.
+
+
+
+	- Network Policy :
+
+			-   User --> (80)Webserver -->  (5000)API server  -->   (3306)Database server
+
+			- For a webserver the ingress and egress traffic are as follows
+
+						ingress						egress
+			   User 	-------> 	(80)Webserver 	-----> 	(5000)API server  -->   (3306)Database server
+
+
+			- For a API server the ingress and egress traffic are as follows
+
+					    					ingress 					egress
+			  User 	--> 	(80)Webserver	-----> 	(5000)API server  ------->   (3306)Database server
+
+			- the Database only have the ingress traffic no egress
+
+
+			- while defining ingress and egress we are only looking at the direction in which the traffic originated(from user), the response back to user do not matter.
+
+			- So the ingress and egress rule would be as follows
+			   		- Allow ingress traffic on port 80 on webserver
+			   		- Allow egress traffic on port 5000 from webserver to API server
+
+			   		- Allow ingress traffic on port 5000 on API server
+			   		- Allow egress traffic on port 3306 from API server to DB server
+
+			   		- Allow ingress traffic on port 3306 on DB server
+
+
+			- Network security on kubernetes
+
+				- By default Pods/services should be able to communicates within the Nodes to any other pod/services.
+
+				- What if we do not want Webserver to communicate directly with the DB server, this is where network policy comes in picture.
+
+					- We define the rules within network policy.
+					- Rule : Only allow ingress traffic from the API pod on port 3306 of DB server. This 	will block the remaining traffic on the DB pods.
+
+					- We can use the labels and selector for this as below
+
+		------------------------------------------------------
+		apiVersion: networking.k8s.io/v1
+		kind: NetworkPolicy
+		metadata:
+		  name: db-policy
+		spec:
+		   podSelector:
+		     matchLabels:
+		       role: db            <<<< This is the label assigned to DB pod
+		   policyTypes:
+		   - Ingress
+		   ingress:
+		   - from:
+		     - podSelector:
+		         matchLabels:
+		           name: api-pod   <<<< This is the label assigned to API pod
+		     ports:
+		     - protocol: TCP
+		       port: 3306
+		------------------------------------------------------
+
+			- Network policies are supported by below network solutions
+				- Kube-route, Calico, Romana, Weave-net
+
+			- Network policies is not support by "Flannel"
