@@ -1,0 +1,851 @@
+##################### Notes #######################
+
+
+- Prerequisite - Switching Routing
+
+	- To see interfaces on host
+		# ip link
+
+
+	- Add IP addr to interface
+		# ip addr add 192.168.1.10/24 dev eth0
+
+
+	- Add route to the system
+		# ip route add 192.168.1.0/24 via 192.168.2.1
+
+
+	- Add a internet to the router and make system to reach to the internet as below
+		# ip route add 172.217.194.0/24 via 192.168.2.1
+
+
+	- Add a default gateway, that is to reach to any network outside of your existing network
+		# ip route add default via 192.168.2.1
+		# ip route add 0.0.0.0 via 192.168.2.1		<<<< means any IP address
+
+
+	- To set linux system as a router
+
+			- To add a router on the Host which is on the network(192.168.1.0/24)
+				# ip route add 192.168.2.0/24 via 192.168.1.6
+
+			- To add a router on the Host which is on the network(192.168.2.0/24)
+				# ip route add 192.168.1.0/24 via 192.168.2.6
+
+			- The route would be having 2 network interfaces with the following IP addresses
+				- 192.168.1.6
+				- 192.168.2.6
+
+			- And on the linux system you will have to make setting to make communication between the 2 interfaces possible
+
+				# echo 1 > /proc/sys/net/ipv4/ip_forward
+
+				- To make this change permanent
+
+					# vim /etc/sysctl.conf
+					net.ipv4.ip_forward = 1
+
+
+- Prerequisite - DNS
+
+	- www.google.com.
+
+		.  		-->	Root domain
+		.com 	--> Top level domain name
+		google	--> Is the domain name assigned to google
+
+		www		--> Is subdomain
+		drive	--> Is subdomain
+		mail	--> Is subdomain
+
+
+	- Record Types
+
+		A  		--		Stores IP to hostnames
+		AAAA	--		Storing IPv6 to hostnames
+		CNAME	--		mapping one record name to another name is called CNAME records (food.web-server, eat.web-server, hungry.web-server)
+
+
+	- To test DNS resolution
+
+		# nslookup www.google.com 		-- It only query your DNS server and not the entry in /etc/hosts file
+		# dig www.google.com 			-- It also only query your DNS server
+
+
+
+- Prerequisite - CoreDNS
+
+	- How to configure a host as a DNS server using CoreDNS solution
+
+		# wget https://github.com/coredns/coredns/releases/download/v1.4.0/coredns_1.4.0_linux_amd64.tgz
+
+		# tar -xvzf coredns_1.4.0_linux_amnd64.tgz
+
+		# ./coredns 		<<<< by default it listens on a port 53
+
+
+		- Specify the IP to hostname mappings
+
+			- First we put all of the entries into the DNS servers /etc/hosts file
+			- Then we configure CoreDNS to use that file
+			- CoreDNS loads it’s configuration from a file named Corefile
+
+			- Here is a simple configuration that instructs CoreDNS to fetch the IP to hostname mappings from the file /etc/hosts
+
+				# cat > Corefile
+				. {
+						hosts 	/etc/hosts
+				}
+
+			- When the DNS server is run, it now picks the Ips and names from the /etc/hosts file on the server
+
+			- CoreDNS also supports other ways of configuring DNS entries through plugins. We will look at the plugin that it uses for Kubernetes in a later section.
+
+
+
+- Prerequisite : Network Namespaces in Linux
+
+
+	- Namespace : Is used to implement network isolation. They are the room to provide the isolation.
+		- It is just used for isolation of resources
+
+
+	- The container processes run under there namespace
+	- When you run "ps aux" as a root user on the host you see all the other processes along with the process running inside the container but with a different process id. That is how namespaces work.
+
+	- For a container we can have a different network namespace that way container does not have a visibility to the information from the host.
+	- The container can have its own virtual interfaces, routing and arp tables
+
+
+	- To create a new network namespace on a linux host
+
+		# ip netns add red
+		# ip netns add blue
+
+
+	- To list network namespaces
+
+		# ip netns
+
+
+	- To list interfaces on the host
+
+		# ip link
+
+
+		- To list interfaces on the network namespace
+
+			# ip netns exec red ip link
+
+			or 
+
+			# ip -n red link
+
+
+	- Similar for arp tables
+
+		# arp
+
+		# ip netns exec red arp
+
+
+	- Same for routing tables
+
+		# route
+
+		# ip netns exec red route
+
+
+
+	- Establish connectivity between the 2 different namespaces using a virtual cable/ethernet pair
+
+
+		- First we establish a communication between the 2 virtual network interfaces
+
+			# ip link add veth-red type veth peer name veth-blue
+
+
+
+		- Then assign those network interfaces to respective namespaces
+
+			# ip link set veth-red netns red
+			# ip link set veth-blue netns blue
+
+
+		- Then assign those interfaces an IP addresses
+
+			# ip -n red addr add 192.168.15.1 dev veth-red
+			# ip -n blue addr add 192.168.15.2 dev veth-blue
+
+
+		- Then bring up those interfaces
+
+			# ip -n red link set veth-red up
+			# ip -n blue link set veth-blue up
+
+
+		- Then ping from red namespace to reach the ip of the blue
+
+			# ip netns exec red ping 192.168.15.2
+
+
+		- If you check the red ARP table, you can see that it has identified it's blue neighbour with a mac-address
+
+			# ip netns exec red arp
+
+
+			- Similar for blue namespace
+
+			# ip netns exec blue arp
+
+
+		- But the host would not be having an idea of this ARP table and no idea of the virtual net interfaces
+
+			# arp
+
+
+
+	- So to create multiple such virtual network interfaces we need a virtual switch within a host
+
+		- linux bridge, open vswitch are the solution
+
+
+		- To create a internal bridge network we add a new interface to the host
+
+			# ip link add v-net-0 type bridge		<<<< This is just another interface
+
+			# ip link set dev v-net-0 up			<<<< bring it up
+
+			# ip link								<<<< you can see it in the lists
+
+
+		- For namspaces this interface is like a switch that you can connect to. 
+		- So it a switch for the namespaces and interface for the host.
+
+
+		- Next step is to connect the namespace to this new virtual network switch. 
+		- Now we will be connecting all named spaces to the bridge network. And we will be removing the older cables. So we need new cable for this purpose and will remove the older cables that we used to connect red and blue namespaces directly.
+
+			- Delete the older cable
+
+				# ip -n red link del veth-red		<<<< The other end is deleted automatically as well as the cable.
+
+
+
+		- Let us now create the new cables to connect the namespaces to the bridge
+
+				veth-red   <------->  veth-red-br
+
+				# ip link add veth-red type veth peer name veth-red-br
+
+
+				veth-blue  <-------> veth-blue-br
+
+				# ip link add veth-blue type veth peer name veth-blue-br
+
+
+		- Now connect these cables to the namespaces
+
+			- Attach "veth-red-br" end to the namespace "red"
+
+				# ip link set veth-red netns red
+
+			- Attach "veth-red" end to the bridge network
+
+				# ip link set veth-red-br master v-net-0
+
+
+			- Follow same procedure to attach the blue cable to blue ns and the bridge
+
+				# ip link set veth-blue netnd blue
+				# ip link set veth-blue-br master v-net-0
+
+
+			- Set the ip addresses to the links and turn them up, we will use the same IP addresses as we used above
+
+				# ip -n red addr add 192.168.15.1 dev veth-red
+
+				# ip -n blue addr add 192.168.15.2 dev veth-blue
+
+				- Finally turn them up
+
+					# ip -n red set veth-red up
+					# ip -n blue set veth-blue up
+
+
+			- The containers of the red and blue namespace can reach each other over the network.
+
+			- So we assigned the 
+				- red namespace with a ip address of 192.168.15.1
+				- blue with 192.168.15.2 
+				- host 192.168.15.0 network
+
+			- From the host we cannot reach to these interfaces, as the host is on one network and these interfaces are on other network.
+
+
+
+		- Establish connectivity between Host and the namespaces
+
+			- Bridge switch is actually a network interface for the host.
+			- So we just need to assign an IP address to this interface on the host, so that we can reach the namespaces through it.
+
+				# ip addr add 192.168.15.5/24 dev v-net-0
+				# ping 192.168.5.1
+
+
+
+		- Now this entire network is private and restriced with in the host
+		- With in the namespace you can reach out, not vice-versa
+		- The only door to the outside world is the inthernet port on the host
+
+			- How to we configure this bridge to reach to the LAN network outside
+
+
+			- Consider LAN IP is 192.168.1.0 
+			- Our host is IP of 192.168.1.2
+			- One more host is IP of 192.168.1.3
+			- We need to establish connectivity between our host and 192.168.1.3
+			- How can I reach to host 192.168.1.3 from within my namespaces
+
+			- If I try to ping from blue namespace to the host 192.168.1.3, it won't work
+
+				# ip netns exec blue ping 192.168.1.3       
+
+					- Won't work as the network 192.168.1.0 is different from the blue namespace network 192.168.15.0
+
+
+				# ip netns exec blue route
+
+					- It don't have route entry for the same.
+
+
+			- So we need to add a entry to the routing table to provide a GW to outside LAN.
+			- Our local host has one interface on the namespace and the other network on the outside LAN.
+			- So our local host can act as a Gateway that connect the blue namespaces to the outside LAN.
+
+
+
+			192.168.15.2(blue namespace) <--> (192.168.15.5)v-net-0 
+													|
+													|
+												-- HOST -- 
+													|
+													|
+											eht0(192.168.1.2) <-->  192.168.1.3 Other Host
+
+
+			- Route all the traffic to the 192.168.1.0/24 network through the host 192.168.15.5
+
+				
+				# ip netns exec blue ip route add 192.168.1.0/24 via 192.168.15.5
+
+					- Our host has 2 IP addresses one on bridge network(192.168.15.5) and other on the LAN(192.168.1.2)
+
+
+				# ip netns exec blue ping 192.168.1.3
+
+					- The ping work but we don't get the response back from the ping, as the destination network don't know about the IP addresses of the namespaces
+					- But the destination knowd about the Host(192.168.1.2), thus we need to Masquerade the packets of private namespace with our Host IP addresses
+
+
+				- Thus we enable NAT to masquerade the IP address of the Namespaces
+
+				- Run this on the Host
+
+					# iptables -t nat -A POSTROUTING -s 192.168.15.0/24 -j MASQUERADE
+
+
+				- The ping now works
+
+					# ip netns exec blue ping 192.168.1.3
+
+
+
+		- Now we want the private namespace to reach to the Internet.
+
+			# ip netns exec blue ping 8.8.8.8	-- To reach to internet from blue namespace
+
+			# ip netns exec blue route 			-- We see that we don't have default route
+
+			Destination 		Gateway 		Genmask 			Iface
+			192.168.15.0        0.0.0.0 		255.255.255.0		veth-blue
+			192.168.1.0			192.168.15.5	255.255.255.0		veth-blue
+
+				- default route is meant for all the other traffic which are not being configured explictly
+
+
+			- So we instruct our namespace to reach to outside network talk to our host
+
+			# ip netns exec blue ip route add default via 192.168.15.5
+
+
+
+		- Now suppose we want to reach from the host(192.168.1.3) to one of our namespaces
+
+			- Suppose a blue namespace host a web-app on port 80 and host(192.168.1.3) want to reach to this web-app configured on port 80.
+			- We have 2 options
+
+				1) Give identity of private network to the host(192.168.1.3). We can add a route on host(192.168.1.3) telling to reach to network 192.168.15.0/24 through the host(192.168.1.2) that is our host on which the virtual network is configured
+
+				2) Other option is to add a port forwarding role using IP tables.
+
+					- Any traffic coming on port 80 on our host(192.168.1.2) to be redirected to port 80 on the IP assigned the blue namespace.
+
+					# iptables -t nat -A PREROUTING --dport 80 --to-destination 192.168.15.2:80 -j DNATx
+
+
+ 
+- FAQ :
+
+	- While testing the Network Namespaces, if you come across issues where you can't ping one namespace from the other, make sure you set the NETMASK while setting IP Address. ie: 192.168.1.10/24
+
+	- Another thing to check is FirewallD/IP Table rules. Either add rules to IP Tables to allow traffic from one namespace to another. Or disable IP Tables all together (Only in a learning environment).
+
+
+
+- Prerequisite - Docker Networking
+
+
+	- Consider the server with a Docker installed on it having eth0(192.168.1.10)
+
+	- While running Dockers we have different options for Networking as below
+
+
+		1) None network : Docker container is not attached to any network and is isolated
+
+			# docker run --network none nginx
+
+
+		2) Host network : Container is attached the Host network. The Container and Host shares the same port.
+
+				- Web application running on port 80 of the container is also available on the Host port 80.
+
+				# docker run --network host nginx
+
+				- Another instance won't work as the port is already occupied
+
+
+		3) Bridge network : The internal private network is created here on the Host and containers are attached to it.
+
+			- The bridge has a network address of 172.17.0.0 and each container attaching to this network get there addresses accordingly.
+
+
+			- When docker is installed on the Host, it by default creates a bridge on the Host.
+
+				# docker network ls
+				NETWORK ID          NAME                DRIVER              SCOPE
+				519b9bcb7d7a        bridge              bridge              local
+				e3eca97c37f3        host                host                local
+				4493f944d2e6        none                null                local
+
+
+
+			- But on the Host the network is created with the name "docker0"
+
+				# ip link 
+				docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default
+
+
+			- So the IP link name "docker0" is same as the docker bridge "bridge".
+
+			- The IP assigned to the interface "docker0" is "172.17.0.1/24" by default
+
+				# ip addr
+				docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+			    link/ether 02:42:60:15:e4:0e brd ff:ff:ff:ff:ff:ff
+			    inet 172.17.0.1/24 brd 172.17.255.255 scope global docker0
+		        valid_lft forever preferred_lft forever
+
+
+		    - Whenever a container is created, docker creates a seperate Network Namespace for it. To list namespace
+
+		    	# ip netns
+
+
+		    - Docker attach the network namespace(container) to the bridge network
+
+		    	# ip link  		-- will show one end of Interface attached to docker0
+
+		    	# ip -n container_name_space link 		-- will show other end of link attached to container namespace
+
+		    	# ip -n container_ns addr 		-- will show the IP address of the container
+
+
+		    - Port mapping on container
+
+		    	- Each container can access everyother container by default
+		    	- A web-app running on a container can be seen using command
+
+		    		# curl http://172.17.0.3:80
+		    		Welcome to nginx !!
+
+
+		    	- To allow external user to access the container interface, docker provides port mapping option.
+		    	- Mapping port 8080 to the container port 80
+
+		    		# docker run -p 8080:80 nginx
+
+		    		# curl http://localhost:8080
+
+		    		- This is done with the help of Port forwarding using NAT rule
+
+		    			# iptables \
+		    				-t nat \
+		    				-A PREROUTING \
+		    				-j DNAT \
+		    				--dport 8080 \
+		    				--to-destination 80
+
+		    			- But here docker add the rule to the DOCKER Chain as below
+
+		    			# iptables \
+		    				-t nat \
+		    				-A DOCKER \
+		    				-j DNAT \
+		    				--dport 8080 \
+		    				--to-destination 172.17.0.3:80 			<<<< containers ip
+
+		    			- You can see this rule in the Host IPTABLES rule
+
+		    				# iptables -nvL 	-t nat
+
+
+- Prerequisite - CNI
+
+	- It is a set of standards that define how a piece of software should be developed to solve networking challenges in a Container Runtime Environment.
+	- These programs are called as plugins.
+
+
+	- CNI defines how a container run time
+		- must create network namespace
+		- Identify the network the container must attach to
+		- should invoke Network Plugin(bridge) when container is Added
+		- should invoke Network Plugin(bridge) when container is Deleted
+		- JSON format of the Network Configuration
+
+
+	- CNI defines how a plugin should
+		- support ADD/DEL/CHECK command line arguments
+		- support parameters container id, network ns etc.
+		- manage IP Address assignments to PODs
+		- must return results in a specific format
+
+
+	- CNI comes with a set of plugins such as BRIDGE, VLAN, IPVLAN, MACVLAN, WINDOWS. DHCP, FLANNEL, CALICO.
+
+
+	- Docker has own set of standars known as CNM(Container Network Model)
+
+		- Thus kubernetes creates the network on the NONE network
+		- And then later on invokes the CNI plugins like FLANNEL or CALICO which takes care of the rest of the configuration
+
+			# docker run --network=none nginx
+			# bridge add 2e34dcf34 /var/run/netns/2e34dcf34
+
+
+
+- Cluster Networking :
+
+	- THe K8 master and worker nodes should have the IP address and unique Hostname set also unique MAC address(in case VM's are cloned).
+
+
+	- Master node Ports and services
+
+		- kubectl
+			- Kube-api 					: 6443
+			- kubelet 					: 10250 				<<<< Yes kubernetes is present on master node
+			- kube-scheduler 			: 10251
+			- kube-controller-manager 	: 10252
+			- ETCD						: 2379
+
+			- For multiple master we need one more port along with aboves ports open
+
+				- ETCD	: 2380			<<<< For ETCD clients to communicate with each other
+
+
+		- Worker Nodes
+			- kubelet 					: 10250
+			- Services 					: 30000-32767
+
+
+	- Commands to keep handy for labs :
+
+		# ip link
+
+		# ip addr
+
+		# ip addr add 192.168.1.0/24 dev eth0
+
+		# ip route
+
+		# ip route add 192.168.1.0/24 via 192.168.2.1
+
+		# cat /proc/sys/net/ipv4/ip_forwards
+		1
+
+		# arp
+
+		# netstat -ntulp
+
+		# route
+
+
+
+- Pod Networking :
+
+
+	- Networking at the Pod layer.
+	- We would be having large number of pods at the cluster, how do pods communicate with each other.
+	- How do Pods communicate with each other.
+
+	- As per Kubernetes Networking Model
+		- Every Pod should have a IP Address
+		- Every Pod should communicate with everyother Pod on the same host
+		- Every Pod should communicate with everyother Pod on the different host
+
+		- Networking solution like flannel, calico solve these problems
+
+
+	- We have already seen below set of command to solve the networking solution for above problem
+	- Let detail our problem we have a 3 node cluster and node have IP addresses in the range of 192.168.1.0/24 series
+
+		Node 1 : 192.168.1.1
+
+		Node 2 : 192.168.1.12
+
+		Node 3 : 192.168.1.13
+
+
+		- On each node we would be running these commands to setup the bridge
+
+		# ip link add v-net-0 type bridge  		<<<< we create a bridge network on each node, which creates a Namespace
+		# ip link set dev v-net-0 up
+
+		# ip addr add 192.168.15.5/24 dev v-net-0 	<<<< We set the IP address for the bridge network
+
+
+		- And for each container on each node we would be running this script to add the container to the local network of the bridge/host.
+
+		---------- net-script.sh -----------
+		# ip link add veth-red type veth peer name veth-red-br 		 <<<< create a pipe
+
+		# ip link set veth-red netns red 							 <<<< attach one end to the container
+		# ip -n red addr add 192.168.15.1 dev veth-red 				 <<<< We add a ip to the container side
+		# ip -n red link set veth-red up
+
+		# ip link set veth-red-br master v-net-0 					 <<<< attach other end to the bridge
+		# ip netns exec blue ip route add 192.168.1.0/24 via 192.168.15.5 	<<<< Add a route
+
+		# iptables -t nat -A POSTROUTING -s 192.168.15.0/24 -j MASQUERADE
+		-------------------------------------
+
+		- So now the Pods are able to communicate with each other with in there respective HOST and get there unqiue IP addresses.
+
+
+
+		- Now the next challenge to enable Pod on one host to communicate with Pod's on other host.
+
+			- We can add a route on one host to communicate with other host.
+			- But adding route on all the hosts is not practical if we have lot many hosts.
+
+			- So instead of configuring router on each host better solution is to have a route for all hosts and point to that as a default gateway.
+
+			- So v-net-# addresses on each node can be grouped under a big network address of 10.244.0.0/16 subnet.
+
+				v-net-0		10.244.1.0/24
+				v-net-1		10.244.2.0/24
+				v-net-2		10.244.3.0/24
+
+			- So we executed the above as a script.
+
+
+		- So how do we execute the above script for each container, that is where CNI comes in.
+		- CNI tells kubernetes that this is how you should call a script while creating a Container/Pod.
+		- CNI also tells that this is how your script should look like.
+
+		- So we modify the script to meet the CNI standards having below sections,
+
+			ADD)     script to add container
+			DELETE)  script to delete container
+			....)
+
+
+		- kubelet is responsible to create a container on each node, kubelet looks at the CNI configuration passed as a CLI argument
+
+			# kubelet \
+			--cni-conf-dir=/etc/cni/net.d \
+			--cni-bin-dir=/etc/cni/bin \
+
+
+- CNI in kubernetes :
+
+	- CNI defines the responsibilities of container runtime(kubernetes).
+
+	- CNI plugin is configured in the kubelet service of each cluster.
+
+	------------------------- kubelet.service -------------------------------
+	ExecStart=/ust/local/bin/kubelet \\
+		--network-plugin=cni \\
+		--cni-bin-dir=/opt/cni/bin \\
+		--cniconf-dir=/etc/cni/net.d \\
+	-------------------------------------------------------------------------			
+
+	- We can see same information as below 
+
+		# ps aux | grep -i kubelet
+
+
+	- We get to see below files
+
+		# ls /opt/cni/bin
+
+		# ls /etc/cni/net.d
+
+		# cat /etc/cni/net.d/10-bridge.conf
+
+
+
+- CNI Weave (Is a CNI solution from Weaveworks) :
+
+	- It creates its own bridge and maintain its own network
+
+	- A single Pod might be attached to multiple bridge network, it could be attached to a Weave bridge as well to Docker bridge
+
+	- A Weave agent is installed on all the kubernetes nodes which maintains all the network related information
+
+	- Weave and Weave peers can be deployed as services or Daemon on each nodes or it can also be deployed as a Pod in the kubernetes cluster
+
+
+		- Can be deployed with a single kubectl command, they are generally deployed as a Deamonsets
+
+		# kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+
+		- We can see the Weave peers deployed as a Pods on each node
+
+		# kubectl get pods -n kube-system
+
+		- Logs can be viewed as
+
+		# kubectl logs weave-net-5gcmb weave -n kube-system
+
+
+
+
+- IP address management :
+
+	- We are not concerned with IP address of Node but we are concerned about how a virtual bridge is assigned a IP subnet and how Pods are assigned the IP.
+	- Where is the information stored and managed.
+
+
+	- CNI says it is the responsibility of CNI plugin to manage/assign the IP of Pods.
+	- Kubernetes is not concerned about this.
+
+
+	- CNI comes with 2 build-in plugins which manages the number of IP addresses assigned to each Node locally on that Node.
+			- DHCP
+			- host-local
+
+			- We would be using the "host-local" plugin here
+
+					ip = get_free_ip_from_host_local()
+
+			- It is still our responsibility to invoke that plugin in our script
+
+
+			- CNI maintains a configuration file in which we can specify which plugin to use
+
+			# cat /etc/cni/net.d/net-script.conf 			<<<<
+			{
+				"cniVersion": "0.2.0",
+				"name": "mynet",
+				"type": "net-script",
+				....
+				....
+				"ipam": {
+					"type": "host-local", 					<<<<
+					"subnet": "10.244.0.0/16",
+					"routes": [
+						{ "dst": "0.0.0.0/0" }
+					]
+				}
+			}
+
+
+			- Weave by default allocates IP subnet of 10.32.0.0/12 for kubernetes Pods.
+				- That is a range of 10.32.0.1 - 10.47.255.254
+				- We have almost  1,048,574 number of IP addresses for Pods
+
+
+
+- Service Networking :
+
+	- Previously we talked about Pod networking. We discussed bridge networking, Pod namespace, Pod IP addresses
+
+	- Pod generally communicate via Services
+	- Each service is also given a IP address
+
+	- A service is accessible to all Pods of a cluster and is hosted accross the Cluster and not bound to any single Pod.
+
+	- Service is only accessible only with in the Cluster.
+	- We call it as a Cluster-IP service.
+
+	- Node Port Service : The Port of a Pod is exposed to the outside world. Thus this service is accessible by the outside world as well.
+
+
+
+	- kubelet : It watches the kube-apiserver and creates/destroys the Pods accordingly on the nodes. Also invokes the CNI plugin to configure network on the node.
+
+
+	- kubeproxy : It watches the kube-apiserver and creates the services.
+
+		- Services are cluster-wide concepts they exist across the cluster where as Pod's are with specific to a single Node only.
+
+		- Services don't have namespaces nor a interfaces unlike Pods. They just a virtual IP addresses.
+
+
+		- When we create services it is assigned a IP addresses from predefined range. 
+		- kubeproxy running on each nodes get that IP addresses and creates the forwarding rules on each node.
+			- Saying any IP coming to this services IP address to go to the Pod.
+			- It also handles the Port's accordingly.
+			- It is a IP and Port combination.
+
+		- How does kubeproxy creates these rules ? It can use one of the below methods.
+
+			- userspace
+			- iptables 			<<<< This is known to us, this is the default one
+			- ipvs
+
+
+		- When kubernetes creates a service it is assigned a IP address, the range of the IP address is defined as follows
+
+			# kube-api-server  --service-cluster-ip-range ipNet (Default 10.0.0.0/24)
+
+			# ps aux | grep -i kube-apiserver
+			kube-apiserver  ......... ........ --service-cluster-ip-range=10.96.0.0/12
+
+				- This defines the range of service as 10.96.0.0 - 10.111.255.255
+				- The Pod ip address range is different and don't overlap with the service IP range
+
+
+		- We can see the Service iptables forwarding rule in the iptables as below
+
+			# iptables -L -t net | grep db-service
+			KUBE_SVC_ESDFSDF123			anywhere 	10.103.132.104(IP of service) 			tcp dpt:3306
+			DNAT 						anywhere	anywhere 								tcp to:10.244.1.2:3306
+
+
+		- Similarly for Node Port service, kubeproxy creates a iptables rule to forward all the traffic coming on Node to the backend Pods
+
+		- We can also see these entries in
+
+			# cat /var/log/kube-proxy.log
+
+
+
+- DNS in kubernetes :
+
+
+
+
+
