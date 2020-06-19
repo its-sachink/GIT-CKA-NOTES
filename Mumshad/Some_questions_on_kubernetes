@@ -1,0 +1,38 @@
+###################### Some Questions : ######################
+Inderjeet :
+
+Questions :
+
+1) cluster formation : kubeadm, network deploy - **high marks
+
+2) backup etcd - **high marks
+
+3) deployment, services, export the DNS address of Pod and services into specific files - **high marks
+
+4) Pod error, kubectl logs grep error msg to file
+
+5) daemon set : 100% - **high marks
+
+6) volume make
+
+7) kubectl make secret | base64, enter this secret in pod and deploy pod
+
+8) simple deployment
+
+9) Multiple containers in a single pod
+
+10) kubectl get pod in sort-order
+
+11) Cpu utilization and memory utilization in sorted order
+
+------------------------------
+
+book marks allowed : Do as per mumshad courses
+
+10) certificates
+
+11) json format commands
+
+-------------------------------
+
+- kubernetes.io cheetsheat is important
