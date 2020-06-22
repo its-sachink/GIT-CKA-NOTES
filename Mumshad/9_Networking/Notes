@@ -845,7 +845,411 @@
 
 - DNS in kubernetes :
 
+	- Kubernetes deploy a DNS server by default when you setup a cluster.
+
+	- For each service created, kubernetes DNS service creates a record within DNS and maps a cluster IP address to it.
+	- Any Pod can reach the service using it's service name.
+
+		# curl http://web-service
+
+
+	- For each namespace DNS creates a subdomain.
+	- The services created in a default namespace are mapped/grouped in a subdomain named "svc".
+
+
+	# curl http://web-service.app 			## app is a namespace
+
+			- web-service : is a name of the service
+			- app: is a name of the subdomain
+
+
+	- All the Pods and the services for a namespace "app" are grouped together within a subdomain in the name of "app"
+	- All the services are further grouped together in the subdomain called "svc".
+	- Finally all the services and pods are grouped together in the root domain called "cluster.local".
+
+
+	|hostname 	|	Namespace 	|	Type 	| 	Root 		|	IP Address 	|
+	--------------------------------------------------------------------------
+	|web-service|	apps		|	svc 	| cluster.local  |  10.107.37.188|
+
+		- So we can reach to the service using the URL
+
+				# curl http://web-service.apps.svc.cluster.local 	<<<< FQDN for the services
 
 
 
 
+	- DNS records for Pods are not created by default but we can enable that in the cluster
+	- For each Pod kubernetes generates the name by replacing each dot(.) by dash(-), namespace remains same, the type changes to "pod" and the root domain remains same "cluster.local"
+
+	|hostname 	|	Namespace 	|	Type 	| 	Root 		|	IP Address 	|
+	--------------------------------------------------------------------------
+	|10-244-2-5|	apps		|	pod 	| cluster.local  |  10.244.2.5	|
+	|10-244-1-5|	Default 	|   pod 	| cluster.local  |  10.244.1.5  |
+
+
+		- So we can reach to the pod using the URL
+
+				# curl http://10-244-2-5.apps.pod.cluster.local
+
+
+							cluster.local
+								|
+						----------------------
+						|					  |
+					  svc 					 pod
+					   |					  | 
+					  apps					apps
+					   |					  |
+					  web-service			10-244-2-5
+
+
+
+- CoreDNS in kubernetes :
+
+	- For each Pod and Service kubernetes maintains a record centrally in its own DNS server.
+	- For each Pod and entry of DNS is made into the /etc/resolv.conf
+	- For Pod the dns names is in the form of IP addresses with dash(-) and for services the dns names is in the form of web-service.apps.svc.cluster.local along with there respective IP addresses
+
+
+	- CoreDNS is used as a DNS server in the kubernetes cluster.
+	- CoreDNS is maintained as a ReplicaSet.
+
+	- CoreDNS maintains a configuration file /etc/coredns/Corefile.
+
+		- It contains number of plugins for handling errors, maintaining cache, etc
+
+		# cat /etc/coredns/Corefile
+		.53 {
+			errors
+			health
+			kubernetes cluster.local in addr.arpa  ip6.arpa {   << plugin top-level domain name is set "cluster.local"
+				pods insecure									<< resposible for creating a record for pod
+				upstream
+				failthrough in addr.arpa  ip6.arpa
+			}
+			prometheus
+			proxy . /etc/resolv.conf 		<<<< a global nameserver is maintained here to resolve non-local records
+			cache 30
+			reload
+		}
+
+		- This core file is passed as a configmap object
+
+				# kubectl get configmap -n kube-system
+
+		- The service to access this DNS server is named as "kube-dns" by default
+
+
+		- Kubelet service is responsible to inject the CoreDNS service IP into each Pod.
+
+			----------------------------------------
+			# cat /var/lib/kubelet/config.yaml
+			...
+			clusterDNS:
+			- 10.96.0.10
+			clusterDomain: cluster.local
+			----------------------------------------
+
+
+		- The resolv.conf has following entry which allows to search the service in default domain
+
+			--------------------------------------------
+			# cat /etc/resolv.conf
+			nameserver    10.96.0.10
+			search 		default.svc.cluster.local  	svc.cluster.local  	cluster.local      <<<< this entry
+			--------------------------------------------
+
+			# nslookup web-service
+			# host web-service        <<<< this resolves to web-service.svc.cluster.local
+
+			- This doesn't work for the Pod same way
+
+
+
+- Ingress :
+
+
+	- In a typical scenario any Node port service having a high range port address will like this.
+
+		# http://<node-ip>:38080
+
+		- We can replace <node-ip> with the DNS name but for high port number will have to introduce a proxy which will listen on port 80 and will forward the traffic to port 38080.
+
+		- Thus, for a NodePort service it would be something like this.
+
+		DNS service --> proxy server:80 --> IP with a port number:38080
+
+
+
+
+	- We can also set a service of type LoadBalancer.
+
+		- In case of a cloud like GCP, kubernetes sends a request to GCP platform to provision a network load balancer to a service.
+		- In addition GCP would then automatically deploy LoadBalancer configured to route traffic to service ports on all the nodes and return its information to kubernetes.
+
+		- The LoadBalancer have a external Public IP and the port 80 can be redirected to higher ports like 38080.
+
+				80 --> 38080
+
+			- We can point DNS server to ----> Public IP of LoadBalancer
+
+
+		http://my-online-store.com 		--resolve-to---->	GCP Load Balancer(80) 	---->  Service Port:38080
+
+
+		- Similarly for new application "http://my-online-store.com/watch" new GCP Load Balancer with the different Public IP address will be created and that would be deployed on same kubernetes cluster.
+
+		- So we will need different Public IP addresses for different deployments on same kubernetes cluster.
+
+		- These different Public IP addresses could be costly.
+
+		- Also we will need a seperate SSL for these LoadBalancers and managing these SSL can become problematic at the same time.
+
+
+		- So basically 2 challenges are here,
+
+			1) Hosting of different applications on the same kubernetes cluster which could require different LoadBalancers with different Public IP addresses.
+				- https://my-online-store.com
+				- https://my-online-store.com/watch
+				- https://my-online-store.com/apparel
+				- https://my-online-store.com/video
+
+			2) Maintaining a different SSL for these applications
+
+
+		- It would be easy if we could manage as this as a single solution with all the configuration as a Kubernetes definition file with a single accessible URL based on the URL path(/resources).
+
+
+		- This can be done using a Kubernetes Ingress controller.
+		- Think of Ingress as a layer-7 loadbalancer build in Kubernetes cluster that can be configured just like any other Kubernetes Object.
+
+
+		- We still need expose it to make it accessible outside the cluster.
+		- So we need to publish it as a,
+			- NodePort	OR
+			- CloudNative LoadBalancer
+
+
+		- Ingress is implemented using below 2 step method.
+
+			1) Deploy a supported solution
+
+				- INGRESS CONTROLLER : Using either Nginx, HAPROXY, Traefik, GCP-GCE, Istio, Contour
+
+					- This does not come with Kubernetes cluster by default.
+					- GCP-GCE and Nginx are currently maintained by kubernetes project.
+					- These ingress controller have additional intelligence build to monitor the kubernetes cluster for new definitions, or new ingress resources and configure the Nginx server accordingly.
+
+
+			2) Make configuration
+
+				- INGRESS RESOURCES : Specify a set of rules to configure Ingress
+
+
+
+			A) CREATING INGRESS CONTROLLER - NGINX :
+
+			- NGINX controller is deployed as just another deployment in kubernetes with below files.
+
+			1) NGINX Configmap file :
+
+				- Nginx requires configuration options like err-log-path, keep-alive, ssl-protocols, session-timeout etc.
+				- These options can be stored in the config-map object.
+				- You can initially pass this configmap as empty.
+
+
+			------------------------ nginx ingress configmap ----------------------
+			kind : ConfigMap
+			apiVersion: v1
+			metadata:
+			  name: nginx-configuration
+			....
+			....
+			-----------------------------------------------------------------------
+
+
+			2) NGINX deployment file :
+
+			------------------------ nginx ingress deployment ----------------------
+			apiVersion: extensions/v1beta1
+			kind: Deployment
+			metadata:
+			  name: nginx-ingress-controller
+			spec:
+			  replicas: 1
+			  selector:
+			    matchLabels:
+			      name: nginx-ingress
+			  template:
+			    metadata:
+			      labels:
+			        name: nginx-ingress
+			    spec:
+			      containers:
+			        - name: nginx-ingress-controller
+			          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.21.0  << special for k8
+
+			      args:
+			        - /nginx-ingress-controller                           <<< To start Nginx service
+			        - --configmap=$(POD_NAMESPACE)/nginx-configuration    <<< Pass Nginx configmap
+
+			      env:
+			        - name: POD_NAME 							<<< Passing the environment variables
+			          valueFrom:
+			            fieldRef:
+			              fieldPath: metadata.name
+			        - name: POD_NAMESPACE
+			          valueFrom:
+			            fieldRef:
+			              fieldPath: metadata.namespace
+
+			      ports:										<<< The Ports used by Ingress Controller
+			        - name: http
+			          containerPort: 80
+			        - name: https
+			          containerPort: 443    
+			------------------------------------------------------------------------
+
+
+			3) Service file to expose the Ingress controller to external world.
+
+			------------------------ nginx ingress service ----------------------
+			apiVersion: v1
+			kind: Service
+			metadata:
+			  name: nginx-ingress
+			spec:
+			  type: NodePort 							<<<< Type NodePort
+			  ports:
+			  - port: 80
+			    targetPort: 80
+			    protocol: TCP
+			    name: http
+			  - port: 443
+			    targetPort: 443
+			    protocol: TCP
+			    name: https
+			  selector:
+			    name: nginx-ingress
+			------------------------------------------------------------------------
+
+
+			4) Require a service account with correct Role and RoleBinding.
+
+				- We require this for additional intelligence to monitor the changes in the ingress resources in the runtime and configure the Nginx server accordingly when something changes.
+
+				- For this is requires a service account with right set of permissions with correct Roles and RoleBindings.
+
+			------------------------ nginx ingress service-account ----------------------
+			apiVersion: v1
+			kind: ServiceAccount
+			metadata:
+			  name: nginx-ingress-serviceaccount
+			-----------------------------------------------------------------------------
+
+
+
+			B) - CREATING INGRESS RESOURCES - NGINX :
+
+			- Ingress resource is a set of rules and configurations applied on Ingress controllers.
+			- Route application based on the URL.
+					www.my-online-store.com/user
+					www.my-online-store.com/watch
+
+			- Route users based on domain names.
+					wear.my-online-store.com
+					watch.my-online-store.com
+
+			----------------- ingress-wear.yaml -------------------------
+			apiVersion: extensions/v1beta1
+			kind: Ingress
+			metadata:
+			  name: ingress-wear
+			spec:
+			  backend:
+			    serviceName: wear-service
+			    servicePort: 80
+			-------------------------------------------------------------
+
+				# kubectl create -f ingress-wear.yaml
+				# kubectl get ingress
+
+
+			- Ingress resource rules : To route the traffic based on the different domain names.
+
+				- Rule based on domain name
+
+					- www.my-online-store.com
+					- wear.my-online-store.com
+					- watch.my-online-store.com
+					- Everything else
+
+				- Rule based on further route
+
+					- http://www.my-online-store.com/wear
+					- http://www.my-online-store.com/watch
+					- http://www.my-online-store.com/listen
+
+
+					- http://wear.my-online-store.com/
+					- http://wear.my-online-store.com/returns
+					- http://wear.my-online-store.com/support
+
+
+					- http://watch.my-online-store.com/
+					- http://watch.my-online-store.com/movies
+					- http://watch.my-online-store.com/tv
+
+					- http://xyz.my-online-store.com      << will show 404 not found page
+
+
+			- Configuration based on path
+			----------------- ingress-wear.yaml -------------------------
+			apiVersion: extensions/v1beta1
+			kind: Ingress
+			metadata:
+			  name: ingress-wear
+			spec:
+			  rules:
+			  - http:
+			  	  paths:
+			  	  - path: /wear
+			  	  	backend:
+			  	  	  serviceName: wear-service             <<<< wear-service
+			  	  	  servicePort: 80
+			  	  - path: /watch
+			  	    backend:
+			  	      serviceName: watch-service			<<<< watch-service
+			  	      servicePort: 80
+			---------------------------------------------------------------
+
+
+				# kubectl create -f ingress-wear.yaml
+
+				# kubectl describe ingress ingress-wear
+							- You can see a rules in the description
+							- You will also see a default backend which forwards the rest of the traffic giving 404 notfound error.
+
+
+			- Configuration based on domain name
+			----------------- ingress-wear.yaml -------------------------
+			apiVersion: extensions/v1beta1
+			kind: Ingress
+			metadata:
+			  name: ingress-wear
+			spec:
+			  rules:
+			  - host: wear.my-online-store.com
+			    http:
+			      paths:
+			      - backend:
+			          serviceName: wear-service             <<<< wear-service
+			          servicePort: 80
+			  - host: watch.my-online-store.com
+			    http:
+			      paths:
+			      - backend:
+			          serviceName: watch-service             <<<< watch-service
+			          servicePort: 80
+			---------------------------------------------------------------			

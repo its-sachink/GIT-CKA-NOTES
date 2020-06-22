@@ -1,0 +1,174 @@
+- Intro to JSON :
+
+	- In YAML we use "-" to define a list and " " to denote a dictionary
+	- In JSON we use "[" to define a list and "{" to denote a dictionary
+
+	YAML :
+
+	car: 
+		color: blue 
+		price: $20,000 
+		wheels: 
+		- model: X345ERT 
+		  location: front-right 
+		- model: X34hRRT 
+		  location: front-lef
+		- model: X345ERT 
+		  location: rear-right 
+		- model: X345ERT 
+		  location: rear-right 
+
+
+
+	JSON :
+
+	{									<<<< { - define's a Dictionary
+
+		"car": { 
+			"color": "blue", 
+			"price": "$20,000", 
+			"wheels": [					<<<< [ - define's a List
+				{ 
+					"model": "X345ERT", 
+					"Location": "tront-lett" 
+				},
+				{
+					"model": "X345ERT", 
+					"Location": "front-right" 
+				},
+				{
+
+					"model": "X345ERT", 
+					"Location": "rear-right" 
+				},
+				{
+					"model": "X345ERT", 
+					"location": "rear-right" 
+				}
+			]
+
+		}
+	}
+
+
+
+	Case 1:
+
+	{ 						<<< Root element of a JSON document is denoted by $
+		"car": {
+			"color": "blue", 
+			"price": $20,000
+		},
+		"bus": {
+			"color": "white",
+			"price": $120,000
+		}
+	}
+
+		- To get car details : $.car
+		- To get bus details : $.bus
+		- To get car color : $.car.color
+
+
+	Case 2:
+
+	{						<<< Root element of a JSON document and is denoted by $ 
+		"vehicles": {
+			"car": { 
+			"color": "blue",
+			"price": "$20,000"
+		},
+		"bus": {
+			"color": "white",
+			"price": "$120,000"
+		}
+		}
+	}
+
+		- To get car details : $.vehicles.car
+		- To get car color : $.vehicles.car.color
+		- To get bus color: $.vehicles.bus.color
+
+		- The result of a JSON query is outputed in the form of a Array [ ]
+
+
+
+	Case 3:
+
+	- JSON Lists :
+
+	[
+		"car",
+		"bus",
+		"truck",
+		"bike"
+	]
+
+		- To get the first element : $[0]
+		- To get the 4th element: $[3]
+		- To get 1st and 4th element: $[0,3]
+
+
+	
+	Case 4:
+
+	{									<<<< { - define's a Dictionary
+
+		"car": { 
+			"color": "blue", 
+			"price": "$20,000", 
+			"wheels": [					<<<< [ - define's a List
+				{ 
+					"model": "X345ERT", 
+					"Location": "tront-lett" 
+				},
+				{
+					"model": "X345ERT", 
+					"Location": "front-right" 
+				},
+				{
+
+					"model": "X345ERT", 
+					"Location": "rear-right" 
+				},
+				{
+					"model": "X345ERT", 
+					"location": "rear-right" 
+				}
+			]
+
+		}
+	}
+
+		- To get model of the 2nd wheel of car : $.car.wheels[1].model		<<< As array index start from 0.
+
+		- To get the model of the rear-right wheel : 
+
+					$.car.wheels[ ?( @.location == "rear-right" )].model
+
+	Case 5:
+
+	[
+		12, 
+		43, 
+		23, 
+		12, 
+		56, 
+		43, 
+		93, 
+		32, 
+		45, 
+		63, 
+		8, 
+		78 
+	]
+
+		- To get all numbers greater than 40 : $[ ?( @ > 40 )]  	<<< criteria is always deifined in ()
+
+		$[ ?( @ == 40)]
+		$[ ?( @ != 40 )]
+
+		$[ ?( @ in [40,43,45] )]
+		$[ ?( @ nin [40,43,45] )]	<<< not in
+		
+

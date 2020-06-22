@@ -1,0 +1,91 @@
+3_JSON_Path2_Wild_Cards :
+
+
+
+	- Case 1:
+
+	{
+		"car": {
+		"color": "blue",
+		"price": "$20,000"
+		},
+
+		"bus": {
+		"color": "white",
+		"price": "$120,000"
+		}
+	}
+
+		- Get car's color : 	$car.color
+		- Get bus's color: 		$bus.color
+		- Get all colors: 		$.*.color
+		- Get all prices: 		$.*.price
+
+
+	- Case 2:
+
+				"wheels": [					<<<< [ - define's a List
+				{ 
+					"model": "X345ERT", 
+					"Location": "tront-lett" 
+				},
+				{
+					"model": "X345ERT", 
+					"Location": "front-right" 
+				},
+				{
+
+					"model": "X345ERT", 
+					"Location": "rear-right" 
+				},
+				{
+					"model": "X345ERT", 
+					"location": "rear-right" 
+				}
+
+
+					- Get 1'st wheel's model :	$[0].model
+					- Get 4th wheel's model  :	$[3].model
+					- Get all wheel's model	 :	$[*].model
+
+
+	-	Case 3:
+
+	{ 
+		"car": { 
+			"color": "blue", 
+			"price": 20000, 
+			"wheels": [
+				{
+					"model": "X345ERT", 
+				},
+				{
+					"model": "X346ERT", 
+				}
+			]
+		},
+		"bus": {
+		 "color": "white", 
+		 "price": 120000, 
+		 "wheels": [
+		 	{
+		 		"model": "7,227KLJ", 
+		 	}, 
+		 	{
+		 		"model": "7,226MTO",
+		 	}
+		 	]
+		 }
+	}
+
+		- Get car's 1st wheel model:
+			$.car.wheels[0].model
+
+		- Get car's all wheel model:
+			$.car.wheel[*].model
+
+		- Get bus's wheel model:
+			$.bus.wheels[*].model
+
+		- Get all wheel's models:
+			$.*.wheels[*].model

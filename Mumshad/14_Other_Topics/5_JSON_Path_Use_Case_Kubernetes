@@ -1,0 +1,163 @@
+5_JSON_Path_Use_Case_Kubernetes :
+
+
+	- Why JSON PATH? 
+		• Need to work with Large Data sets 
+			• 100s of Nodes 
+			• 1000s of PODs, Deployments, ReplicaSets 
+
+
+
+	- How to JSON PATH in Kubectl ?
+
+		- Identify the "kubectl" command :
+
+			# kubectl get nodes
+			# kubectl get pods
+
+		- Familiarize with JSON output :
+
+			# kubectl get nodes -o json
+			# kubectl get pods -o json
+
+		{
+			"apiVersion": "v1", 
+			"kind": "List", 
+			"items": [
+				{ 
+					"apiVersion": "v1", 
+					"kind": "Fed", 
+					"metadata": {
+						"name": "nyinx-5557945097-Thnjp",
+					},
+					"spec": { 
+					 	"containers": [ 
+					 		{
+					 			"image": "nginx:alpine", 
+								"name": "nginx" 
+							}
+						],
+						"nodeName": "nole01"
+					}
+				}
+			]
+		}
+
+		- Form the JSON PATH query :
+
+			.items[0].spec.containers[0].image
+
+		- Use the JSON PATH query with kubectl command :
+
+			# kubectl get pods -o=jsonpath='{.items[0].spec.containers[0].image}'
+
+
+
+	- Case 1 :
+
+	"apiVersion": "v1", 
+	"items":[ 
+		{
+			"apiVersion": "v1", 
+			"kind": "Node", 
+			"metadata": {
+				"name": "master" 
+			},
+			"status": { 
+				"capacity": { 
+					"cpu": "4" 
+				},
+				"nodeInfo": { 
+					"architecture": "amd64", 
+					"operatingSystem": "linux", 
+				},
+			}
+		},
+
+		{
+			"apiVersion": "v1", 
+			"kind": "Node", 
+			"metadata": {
+				"name": "node01", 
+			},
+			"status": { 
+				"capacity": {
+					"cpu": "4", 
+				}, 
+				"nodeInfo": {
+					"architecture": "amd64", 
+					"operatingSystem": "linux", 
+				},
+			}
+		}
+	],
+	"kind": "List"
+
+					# kubectl get nodes -o=jsonpath.'{items[*].metadata.name}' 	<<<< Gives the name of the nodes
+					master node01 															
+
+					# kubectl get nodes -o=jsonpath='{items[*].status.nodeInfo.architecture}'
+					amd64 amd64 											<<<< Gives hardware architecture of nodes
+
+					# kubectl get nodes =o=jsonpath='{items[*].status.capacity.cpu}'
+					4 4 													<<<< gives the count of CPU on the nodes
+
+					# kubectl get nodes -o=jsonpath.'{items[*].metadata.name} {items[*].status.capacity.cpu}'
+					master node01 4 4					<<< merge of queries to get both the result in single command
+
+
+					- prettifying and formatting options :
+
+					# kubectl get nodes -o=jsonpath.'{items[*].metadata.name}{"\n"}{items[*].status.capacity.cpu}'
+					master	node01
+					4		4
+
+					- Loops to iteratre through the items :
+
+						- Add a for loop :
+						'{range .items[*]} 
+							{.metadata.name} {"\t" } { .status.capacity.cpu}{"\n"} 
+						{end}'
+
+						# kubectl get nodes -o=jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.capacity.cpu}{"\n"} 
+						{end}'
+
+						master	4
+						node01	4
+
+
+					- JSON path for custom columns :
+
+						- suppose we need output in the form of :
+
+							NODE 
+							master
+							node01
+
+							# kubectl get nodes -o=custom-columns=NODE:.metadata.name
+
+								- Note that we are excluding the "item[*]" section of the query as the custom column assumes the query is for each items in the list.
+
+						- We can also add addition column :
+
+							# kubectl get nodes -o=custom-columns=NODE:.metadata.name, CPU:.status.capacity.cpu
+
+							NODE 		CPU
+							master 		4
+							node01 		4	
+
+
+					- JSON path for sorting the objects :
+
+
+					# kubectl get nodes --sort-by= .metadata.name 
+					NAME 	STATUS 	ROLES 	AGE 	VERSION 
+					master 	Ready 	master 	5m 		v1.11.3 
+					node01 	Ready 	<none> 	5m 		v1.11.3 
+
+					# kubectl get nodes --sort-by= .status.capacity.cpu
+					NAME 	STATUS 	ROLES 	AGE 	VERSION 
+					master 	Ready 	master 	5m 		v1.11.3 
+					node01 	Ready 	<none> 	5m 		v1.11.3 
+
+

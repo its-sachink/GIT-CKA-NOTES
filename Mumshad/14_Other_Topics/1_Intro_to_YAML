@@ -1,0 +1,111 @@
+- Intro to YAML :
+
+
+	- Key Value Pair in YAML :
+
+		Fruit: Apple 
+		Vegetable: Carrot 
+		Liquid: Water 
+		Meat: Chicken 
+
+	- Array/Lists in YAML :
+		
+		Fruits: 
+		- Orange 
+		- Apple 
+		- Banana 
+
+		Vegetables: 
+		- Carrot 
+		- Cauliflower 
+		- Tomato 
+
+	- Dictionary in YAML :
+
+	Banana: 
+		Calories: 105 		<<<< The spaces should be equal for all the elements in the YAML
+		Fat: 0.4 g 
+		Carbs: 27 g 
+	Grapes: 
+		Calories: 62 
+		Fat: 0.3 g 
+		Carbs: 16 g 
+
+
+
+	- List containing dictionary containing Lists :
+
+	Fruits: 							<<<< List of fruits
+		- Banana: 						<<<< These are dictionary
+			Calories: 105 
+			Fat: 0.4 g 
+			Carbs: 27 g 
+		- Grape: 
+			Calories: 62 
+			Fat: 0.3 g 
+			Carbs: 16 g 
+
+
+	- When to use a dictionary or a List :
+
+		- To start information of a single object we use dictionary.
+
+			Color: Blue
+			Model:
+				Name: Corvette			<<<< Dictionary within a dictionary
+				Year: 1995
+			Transmission: Manual
+			Price: $20,000
+
+
+		- To store the collection of Cars we will use Lists of Dictionaries
+
+		  - Color: Blue 
+			Model: 
+				Name: Corvette 
+				Model: 1995 
+			Transmission : Manual 
+			Price: $20,080 
+		  - Color: Grey 
+			Model: 
+				Name: Corvette 
+				Model: 1995 
+			Transmission: Manual 
+			Price: $22,800 
+		  - Color: Red 
+			Model: 
+				Name: Corvette 
+				Model: 1995 
+			Transmission : Automatic 
+			Price: $20,800 
+		  - Color: Green 
+		  	Model: 
+		  		Name: Corvette 
+		  		Model: 1995 
+		  	Transmission : Manual 
+		  	Price: $23,008 
+		  - Color: Blue 
+		  	Model: 
+		  		Name: Corvette 
+		  		Model: 1995
+		  	Transmission: Manual
+		  	Price: $20,000
+
+
+		- Dictionary are unordered collection
+
+			Banana:								Banana:
+				Calories: 105						Fat: 0.4g
+				Fat: 0.4g			==				Calories: 105
+				Carbs: 27g							Carbs: 27g
+
+
+		- Lists are ordered collection
+
+			Fruits:								Fruits:
+			-  Orange							-	Orange
+			-  Apple				!=			-	Apple
+			-  Banana							-	Banana
+
+
+		# -- is a comment in YAML

@@ -1,0 +1,34 @@
+4_JSON_Path3_Lists :
+
+
+	- Case 1:
+
+	[	
+	"Apple", 
+	"Googie", 
+	"Microsoft", 
+	"Amazon", 
+	"Facebook", 
+	"Coca-Cola", 
+	"Samsung", 
+	"Disney", 
+	"Toyota", 
+	"McDonald's" 
+	]
+
+		- Get the 1st element : $[0]
+		- Get the 4th element : $[3]
+		- Get the 1st and 4th element : $[0,3]
+		- Get the 1st to 4th element : $[0:3]		<<<< 4th element not included
+			- to include 4th element : $[0:4]
+
+
+		- To get the last item in the list :
+						- $[9]
+						- $[-1] 	<<<< does not work for all JSON path implementation
+						- $[-1:0]
+						- $[-1:]
+
+		- To get the last 2 items in the list :
+						- $[-3:0]
+						- $[-3:]
