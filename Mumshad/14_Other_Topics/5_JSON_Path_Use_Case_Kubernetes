@@ -1,5 +1,6 @@
 5_JSON_Path_Use_Case_Kubernetes :
 
+	- Advances kubectl commands :
 
 	- Why JSON PATH? 
 		• Need to work with Large Data sets 
@@ -93,13 +94,13 @@
 	],
 	"kind": "List"
 
-					# kubectl get nodes -o=jsonpath.'{items[*].metadata.name}' 	<<<< Gives the name of the nodes
+					# kubectl get nodes -o=jsonpath='{items[*].metadata.name}' 	<<<< Gives the name of the nodes
 					master node01 															
 
 					# kubectl get nodes -o=jsonpath='{items[*].status.nodeInfo.architecture}'
 					amd64 amd64 											<<<< Gives hardware architecture of nodes
 
-					# kubectl get nodes =o=jsonpath='{items[*].status.capacity.cpu}'
+					# kubectl get nodes -o=jsonpath='{items[*].status.capacity.cpu}'
 					4 4 													<<<< gives the count of CPU on the nodes
 
 					# kubectl get nodes -o=jsonpath.'{items[*].metadata.name} {items[*].status.capacity.cpu}'
@@ -161,3 +162,8 @@
 					node01 	Ready 	<none> 	5m 		v1.11.3 
 
 
+
+
+
+
+https://gist.github.com/so0k/42313dbb3b547a0f51a547bb968696ba

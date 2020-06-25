@@ -1,0 +1,84 @@
+############# Commands #############
+
+
+1) Get the list of nodes in JSON format and store it in a file at /opt/outputs/nodes.json
+
+	>>>> # kubectl get nodes -o json > /opt/outputs/nodes.json
+
+
+
+3) Use JSON PATH query to fetch node names and store them in /opt/outputs/node_names.txt
+	- Remember the file should only have node names.
+
+	>>>> # kubectl get nodes -o=jsonpath='{.items[*].metadata.name}' > /opt/outputs/node_names.txt
+
+
+4) Use JSON PATH query to retrieve the osImages of all the nodes and store it in a file /opt/outputs/nodes_os.txt
+	- The "osImages" are under the "nodeInfo" section under status of each node.
+
+	>>>> # kubectl get nodes -o jsonpath='{.items[*].status.nodeInfo.osImage}' > /opt/outputs/nodes_os.txt
+
+
+5) A kube-config file is present at /root/my-kube-config. Get the user names from it and store it in a file /opt/outputs/users.txt
+	- Use the command kubectl config view --kubeconfig=/root/my-kube-config to view the custom kube-config.
+
+
+	# master $ kubectl config view --kubeconfig=/root/my-kube-config -o=jsonpath='{.users[*].name}'
+		aws-user dev-user test-user
+
+
+6) A set of Persistent Volumes are available. Sort them based on their capacity and store the result in the file /opt/outputs/storage-capacity-sorted.txt
+
+	master $ kubectl get pv --sort-by=.spec.capacity.storage
+NAME       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   REASON   AGE
+pv-log-4   40Mi       RWX            Retain           Available                                   40m
+pv-log-1   100Mi      RWX            Retain           Available                                   40m
+pv-log-2   200Mi      RWX            Retain           Available                                   40m
+pv-log-3   300Mi      RWX            Retain           Available                                   40m
+master $ kubectl get pv --sort-by=.spec.capacity.storage > /opt/outputs/storage-capacity-sorted.txt
+
+
+
+7) That was good, but we don't need all the extra details. Retrieve just the first 2 columns of output and store it in /opt/outputs/pv-and-capacity-sorted.txt
+
+
+The columns should be named NAME and CAPACITY. Use the custom-columns option. And remember it should still be sorted as in the previous question.
+
+
+	master $ kubectl get pv --sort-by=.spec.capacity.storage -o=custom-columns=NAME:.metadata.name,CAPACITY:.spec.capacity.storage
+NAME       CAPACITY
+pv-log-4   40Mi
+pv-log-1   100Mi
+pv-log-2   200Mi
+pv-log-3   300Mi
+master $
+master $ kubectl get pv --sort-by=.spec.capacity.storage -o=custom-columns=NAME:.metadata.name,CAPACITY:.spec.capacity.storage > /opt/outputs/pv-and-capacity-sorted.txt
+
+
+8) Use a JSON PATH query to identify the context configured for the aws-user in the my-kube-config context file and store the result in /opt/outputs/aws-context-name.
+
+	master $ kubectl config view --kubeconfig=my-kube-config -o jsonpath="{.contexts[?(@.context.user=='aws-user')].name}"
+		# aws-user@kubernetes-on-aws
+
+
+
+
+-------------------------- Summary of commands ----------------------
+
+
+# kubectl get nodes -o=json > /opt/outputs/nodes.json
+
+# kubectl get nodes -o=jsonpath='{.items[*].metadata.name}' > /opt/outputs/node_names.txt
+
+# kubectl get nodes -o=jsonpath='{.items[*].status.nodeInfo.osImage}' > /opt/outputs/nodes_os.txt
+
+# kubectl config view --kubeconfig=/root/my-kube-config -o=jsonpath='{.users[*].name}' > /opt/outputs/users.txt
+
+# kubectl get pv --sort-by=.spec.capacity.storage > /opt/outputs/storage-capacity-sorted.txt
+
+# kubectl get pv --sort-by=.spec.capacity.storage -o=custom-columns=NAME:.metadata.name,CAPACITY:.spec.capacity.storage > /opt/outputs/pv-and-capacity-sorted.txt
+
+
+# kubectl config view --kubeconfig=my-kube-config -o jsonpath="{.contexts[?(@.context.user=='aws-user')].name}"
+
+

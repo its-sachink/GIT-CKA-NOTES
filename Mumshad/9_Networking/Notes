@@ -220,7 +220,7 @@
 
 
 		- For namspaces this interface is like a switch that you can connect to. 
-		- So it a switch for the namespaces and interface for the host.
+		- So it is a switch for the namespaces and interface for the host.
 
 
 		- Next step is to connect the namespace to this new virtual network switch. 

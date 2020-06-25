@@ -26,9 +26,7 @@
 		- To get the last item in the list :
 						- $[9]
 						- $[-1] 	<<<< does not work for all JSON path implementation
-						- $[-1:0]
 						- $[-1:]
 
 		- To get the last 2 items in the list :
-						- $[-3:0]
 						- $[-3:]
