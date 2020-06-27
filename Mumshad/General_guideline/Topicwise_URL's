@@ -1,0 +1,47 @@
+###### Topicwise URL ######
+
+
+
+2) --------------------------------------------- Scheduling : ------------------------------------------------------
+
+
+# kp --selector env=prod,bu=finance,tier=frontend
+
+# k taint nodes node01 spray=mortein:NoSchedule
+
+- Tolerations : https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+
+- Untaint : k taint nodes master node-role.kubernetes.io/master:NoSchedule-
+
+
+# k label nodes node01 color=blue
+
+# k describe node node01 | grep -i label -A6
+
+
+- Affinity : https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
+
+	- While adding affinity make sure to add after the containers sections always
+
+
+- Taints to node == Tolerations is set on pod
+- Labels on node == Affinity is set on pod
+
+# k run static-busybox --image=busybox $do --command -- sleep 1000 > /etc/kubernetes/manifests/static-busybox.yaml
+
+	first $do and then --command
+
+
+- Multiple Scheduler :
+
+	Search for "Multiple Schedulers".
+
+		- Change name and add "- --scheduler-name=my-scheduler" in custom scheduler.
+
+		- Specify in the pod
+
+		spec:
+  		  schedulerName: my-scheduler
+
+
+--------------------------------------------- Scheduling : ------------------------------------------------------

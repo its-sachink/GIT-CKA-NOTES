@@ -1,0 +1,71 @@
+----------------- shortcut key ---------------
+# alias k="kubectl"
+# k version --short # tested with v1.18.2
+
+
+
+# export do="--dry-run=client -o yaml"
+# k run pod1 --image=nginx $do
+
+		- kubectl run : will only/always create a POD hence forth and can only be used to create a POD hence forth only.
+
+
+------------ some more if required ---------------
+alias kn=”kubectl get nodes -o wide”
+alias kp=”kubectl get pods -o wide”
+alias kd=”kubectl get deployment -o wide”
+alias ks=”kubectl get svc -o wide”
+--------------------------------------------------
+alias kdp=”kubectl describe pod”
+alias kdd=”kubectl describe deployment”
+alias kds=”kubectl describe service”
+alias kdn=”kubectl describe node”
+--------------------------------------------------
+
+# since 1.18
+# k run pod1 --image=busybox -oyaml --dry-run=client
+
+
+# k run pod1 \
+    -oyaml \
+    --dry-run=client \
+    --image=busybox \
+    --requests "cpu=100m,memory=256Mi" \
+    --limits "cpu=200m,memory=512Mi" \
+    --command \
+    -- sh -c "sleep 1d"
+
+
+------------- create deployment yaml --------------------
+# k create deploy deploy1 -oyaml --image=busybox --dry-run=client > deploy1.yaml
+
+# k run deploy1 \
+    -oyaml \
+    --dry-run=client \
+    --image=busybox \
+    --requests "cpu=100m,memory=256Mi" \
+    --limits "cpu=200m,memory=512Mi" \
+    --command \
+    -- sh -c "sleep 1d" >> deploy1.yaml
+
+
+
+------------- create a job YAML ----------------------------
+
+# k create job job1 -oyaml --dry-run=client --image=busybox 	>> job1.yaml
+
+			- make sure that the Job template still contains "restartPolicy: Never" or "restartPolicy: OnFailure"
+
+
+# k create cj cj1 -oyaml --dry-run=client --schedule="* * * * *" --image=busybox		>> cj1.yaml
+
+			- make sure that the Job template still contains "restartPolicy: Never" or "restartPolicy: OnFailure"
+
+
+------------- execute command on POD externally -----------------------
+
+# k exec my-pod -- ls
+
+
+
+

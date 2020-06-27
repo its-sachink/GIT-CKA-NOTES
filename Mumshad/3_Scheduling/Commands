@@ -2,14 +2,22 @@
 
 - Manual scheduling of a pod
 
+----------------------------
 spec:
   containers:
   - name: nginx
     image: nginx
     ports:
       - containerPort: 8080
-  nodeName: ndoe01		<<<< Allocate a pod to the node
+  nodeName: node01		<<<< Allocate a pod to the node
+----------------------------
 
+
+
+
+############
+1) Labels :
+############
 
 # kubectl get pods --selector app=App1
 				
@@ -30,6 +38,15 @@ spec:
 # k get pod --selector env=prod,bu=finance,tier=frontend
 	
 				- Select a pod based on many selectors
+
+
+--------------------------
+
+
+
+############
+2) Taints :
+############
 
 
 # k describe node node01 | grep -i Taint
@@ -73,16 +90,22 @@ node/master untainted
 			- Remove the taint of a node
 
 
------ Labels, Selectors and NodeAffinity --------------
+
+
+################################################
+3) Labels and NodeAffinity ----------
+################################################
+
 
 # kubectl label node node01 color=blue
 	
 		- apply a label to the running node
 
 
-# kubectl run blue --image=nginx --replicas=6
+# k create deploy blue --image=nginx $do > blue.yaml
+  -- edit replicas: 6
 
-# k run blue --image=nginx --replicas=6 --dry-run -o yaml > blue.yaml
+# k create deployment blue --image=nginx --replicas=6 --dry-run -o yaml > blue.yaml
 
 		- Run deployment with 6 replicas
 
@@ -123,7 +146,11 @@ Use the label - node-role.kubernetes.io/master - set on the master node.
 ----------------------------------------------------------------------------
 
 
-- Resource requirements and Limits :
+
+
+################################################
+4) Resource requirements and Limits :
+################################################
 
 	# k describe pod rabbit
 
@@ -142,7 +169,12 @@ Use the label - node-role.kubernetes.io/master - set on the master node.
 		- To change the memory limit of a pod.
 
 
-- DaemonSet :
+
+
+
+########################
+5) DaemonSet :
+########################
 
 	- How to create a DeamonSet.
 
@@ -195,12 +227,16 @@ Use the label - node-role.kubernetes.io/master - set on the master node.
 
 
 
-- Static pods :
+
+########################
+6) Static pods :
+########################
 
 	- Create a static pod :
 
-	# kubectl run --restart=Never --image=busybox static-busybox --dry-run -o yaml --command -- sleep 1000 > /etc/kubernetes/manifests/static-busybox.yaml
+	# kubectl run static-busybox $do --image=busybox --command -- sleep 1000 > /etc/kubernetes/manifests/static-busybox.yaml
 
+	
 	---------------- static pod sleep def -------------------------
 	apiVersion: v1
 	kind: Pod
@@ -237,7 +273,10 @@ Use the label - node-role.kubernetes.io/master - set on the master node.
 	staticPodPath: /etc/just-to-mess-with-you
 
 
-- Multiple Scheduler:
+
+########################
+7) Multiple Scheduler:
+########################
 
 	- Deploy an additional scheduler to the cluster following the given specification.
 		- Use the manifest file used by kubeadm tool. Use a different port than the one used by the current one.

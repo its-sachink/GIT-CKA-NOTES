@@ -9,13 +9,13 @@
 	# k run nginx --image=nginx $do
 	# k run nginx --image=nginx $do > nginx.yaml
 
-	# kubectl run nginx --image=nginx --restart=Never
-
 - Describe pod
 
 	# k describe pod pod-name
 
 	# k get pods -o wide
+
+
 
 - Create deployment
 	
@@ -27,9 +27,13 @@
 
 	- Add additional pods in replicaset, edit the file and give below command
 
+		# k get replicaset new-replica-set -o yaml > newrs.yaml
+
+		- Edit the replicas in the YAML file.
+
 		# k replace -f replicaset-def.yaml
 
-	- To scale the replicaset
+	- OR To scale the replicaset
 
 		# k scale --replicas=6 -f replicaset-def.yaml
 
@@ -76,8 +80,6 @@
 		# kubectl get pods --all-namespaces
 
 
-	-** Create a Pod instead of a deployment(old version) -- don't use it
-		# kubectl run redis --image=redis --restart=Never --dry-run -o yaml
 
 
 - service
