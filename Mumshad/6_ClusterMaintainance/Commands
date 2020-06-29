@@ -17,6 +17,7 @@
 	
 		# kubectl drain node01 --ignore-daemonsets
 
+		# kubectl frain node03 --ignore-daemonsets --force
 
 	- Configure the node "node01" to be schedulable again.
 
@@ -54,51 +55,37 @@
 		# kubectl drain master --ignore-daemonsets
 
 
-	- Upgrade the master components to exact version v1.17.0
+----------------------------
+	- Upgrade the master components to exact version v1.18.0
 			- Note: While upgrading kubelet, if you hit dependency issue while running the apt-get upgrade kubelet command, use the apt install kubelet=1.17.0-00 command instead
 
-		# apt install kubeadm=1.17.0-00
-		# kubeadm upgrade apply v1.17.0
 
-		# apt install kubelet=1.17.0-00
+		- google : Upgrade kubeadm cluster
+---------------------------------------------------------------
 
+---------- master ------------
+kubeadm upgrade plan
+apt-get install kubeadm=1.18.0-00
 
-	- Mark the master node as "Schedulable" again
+kubeadm upgrade plan v1.18.0
+kubeadm upgrade apply v1.18.0
 
-		# kubectl uncordon master
+apt-mark hold kubeadm
 
+apt-get install kubelet=1.18.0-00
+systemctl restart kubelet
 
-	- Drain the worker node of the workloads and mark it UnSchedulable
+---------- worker ------------
+apt-get install kubeadm=1.18.0-00
+kubeadm upgrade node
 
-		# kubectl drain node01 --ignore-daemonsets
-
-
-	- Upgrade the worker node to the exact version v1.17.0	
-
-		- get the IP address and ssh into it.
-
-			# kubectl get nodes -o wide			<<<< will give you IP address
-			# ssh node01
-
-			# apt install kubeadm=1.17.0-00
-			# apt install kubelet=1.17.0-00
-
-
-			# kubelet --version | cut -d ' ' -f 2
-			v1.17.0
-
-			# kubeadm upgrade node config --kubelet-version $(kubelet --version | cut -d ' ' -f 2)
-			Command "config" is deprecated, use "kubeadm upgrade node" instead
-
-
-	- Uncordon node01
-
-		# kubectl uncordon node01
-			node/node01 uncordoned
+apt-get install kubelet=1.18.0-00
+systemctl restart kubelet
+------------------------------
 
 
 
-
+---------------------------------------------------------------
 - Practise Backup and Restore method :
 
 
