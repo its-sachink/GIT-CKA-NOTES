@@ -14,7 +14,7 @@
 	    matchLabels:
 	      name: webapp
 	  strategy:
-	    rollingUpdate:
+	    rollingUpdate:                      <<<< Need to delete below 3 lines and change "type"
 	      maxSurge: 25%
 	      maxUnavailable: 25%
 	    type: RollingUpdate
@@ -24,7 +24,7 @@
 	to
 
 	-------------------------------------------------
-	spec:
+	=spec:
 	  minReadySeconds: 20
 	  progressDeadlineSeconds: 600
 	  replicas: 4

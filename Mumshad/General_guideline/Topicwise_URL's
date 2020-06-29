@@ -44,4 +44,92 @@
   		  schedulerName: my-scheduler
 
 
---------------------------------------------- Scheduling : ------------------------------------------------------
+
+
+5) ------------------------------------------ ApplLifeCycleMgmt ---------------------------------------------------
+
+
+---------------
+	  strategy:
+	    rollingUpdate:                      <<<< Need to delete below 3 lines and change "type"
+	      maxSurge: 25%
+	      maxUnavailable: 25%
+	    type: Recreate
+---------------
+
+
+---------------
+	spec:
+	  containers:
+	  - image: ubuntu
+	    name: ubuntu-sleeper-2    
+	    command: ["sleep","5000"]
+---------------
+
+
+---------------
+	spec:
+	  containers:
+	  - name: ubuntu
+	    image: ubuntu
+	    command:
+	      - "sleep"
+	      - "1200"			<<<< Check that this should be in doubt quotes
+---------------
+
+
+---------------
+- container:
+	ENTRYPOINT ["python", "app.py"]
+
+	CMD ["--color", "red"]
+
+- pod:
+	  containers:
+	  - name: simple-webapp
+	    image: kodekloud/webapp-color
+	    command: ["python", "app.py"]
+	    args: ["--color", "pink"]
+---------------
+
+
+# k create cm webapp-config-map --dry-run -o yaml \ 
+			--from-literal=APP_COLOR=darkblue > webapp-config-map.yaml
+---------------
+	    containers:
+	    - envFrom:
+	        - configMapRef:
+	            name: webapp-configmap
+	      image: kodekloud/webapp-color
+---------------
+
+
+
+# k create secret generic db-secret \
+	--from-literal=DB_Host=sql01 \
+	--from-literal=DB_User=root \
+	--from-literal=DB_Password=password123 \
+	--dry-run -o yaml > db-secret-1.yaml			<<<< The base64 is automaticall encoded
+---------------
+		  containers:
+		  - image: kodekloud/simple-webapp-mysql
+		    name: webapp
+		    envFrom:
+		      - secretRef:					<<<<
+		          name: app-secret
+---------------
+
+
+
+---------------
+		spec:
+		  containers:
+		  ....
+		  ....
+		  initContainers:
+		  - name : redbusy
+		    image: busybox
+		    command: ["sleep","20"]
+		  dnsPolicy: ClusterFirst
+		  enableServiceLinks: true
+---------------
