@@ -63,8 +63,9 @@
 		- google : Upgrade kubeadm cluster
 ---------------------------------------------------------------
 
+# k drain/cordon/uncordon master/node01
 ---------- master ------------
-kubeadm upgrade plan
+kubeadm upgrade plan                  <<<< Always check the cluster version and kubeadm version here
 apt-get install kubeadm=1.18.0-00
 
 kubeadm upgrade plan v1.18.0
@@ -136,6 +137,7 @@ systemctl restart kubelet
       	 --cacert=/etc/kubernetes/pki/etcd/ca.crt \
 		 --cert=/etc/kubernetes/pki/etcd/server.crt \
 		 --key=/etc/kubernetes/pki/etcd/server.key \
+		 --endpoint=https://127.0.0.1:2379 \
 		 snapshot save /tmp/snapshot-pre-boot.db
 
 				Snapshot saved at /tmp/snapshot-pre-boot.db

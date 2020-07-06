@@ -1,4 +1,415 @@
 ################ Commands #################
 
+------ commands ---------
+	- Commands to keep handy for labs :
+
+		# ip link
+
+		# ip addr
+
+		# ip addr show ens3
+
+		# ip addr add 192.168.1.0/24 dev eth0
+
+		# ip route
+
+		# ip route add 192.168.1.0/24 via 192.168.2.1
+
+		# cat /proc/sys/net/ipv4/ip_forwards
+		1
+
+		# arp
+
+		# netstat -ntulp
+
+		# route
+
+------------ lab 1 -------------------
+- What is the network interface configured for cluster connectivity on the master node?
+
+	# ip link
 
 
+- What is the IP address assigned to the master node on this interface?
+
+	# kubectl get nodes -o wide
+
+- What is the MAC address of the interface on the master node?
+
+	# ip link show ens3
+
+- If you were to ping google from the master node, which route does it take?
+
+	# ip route show default
+
+- Notice that ETCD is listening on two ports. Which of these have more client connections established?
+
+	# netstat -ntulpa | grep -i etcd
+
+		a - shows all the conntections
+
+		- 2379 is the port of ETCD to which all control plane components connect to. 2380 is only for etcd peer-to-peer connectivity. When you have multiple master nodes.
+
+
+- What is the path configured with all binaries of CNI supported plugins?
+
+	# ps aux | grep -i kubelet | grep -i cni
+
+			 and look for --cni-bin-dir option
+
+
+- What is the CNI plugin configured to be used on this kubernetes cluster?
+
+	# ls /etc/cni/net.d/		<<<< remember this
+
+	# cat /etc/cni/net.d/10-weave.conflist
+
+
+-------------- lab 3 : Deploy networking solution ------------------
+
+	# kubectl exec busybox ip route
+
+	- Weave is deployed as daemonset as weave peers
+
+- Deploy weave-net networking solution to the cluster
+
+	# kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+		- search for "kubeadm init", it is a part for installing the weave networking solution at the bottom.
+
+
+
+-------------- lab 4 : IPAM (IP address management) Networking - Weave ------------------
+
+ # cat /etc/cni/net.d/net-script.conf 		<<<< contains the details type of plugin and subnet,route to use.
+
+- What is the networking solution used by this cluster.
+
+	# cat /etc/cni/net.d/10-weave.conflist
+
+
+- Identify the name of the bridge network/interface created by weave on each node
+
+	# ip link
+
+
+- What is the POD IP address range configured by weave?
+
+	# ip addr show weave
+
+10: weave: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1376 qdisc noqueue state UP group default qlen 1000
+    link/ether 6a:d3:47:eb:80:2e brd ff:ff:ff:ff:ff:ff
+    inet 10.32.0.1/12 brd 10.47.255.255 scope global weave  		<<<<
+       valid_lft forever preferred_lft forever
+
+
+- What is the default gateway configured on the PODs scheduled on node03?
+	Try scheduling a pod on node03 and check ip route output
+
+	# k exec -it weave-net-nrl4m -n kube-system sh
+	ip route 
+	default via 172.17.0.1 dev ens3
+	10.244.2.0/24 dev cni0 proto kernel scope link src 10.244.2.1 	<<<<
+
+
+
+
+-------------- lab 5 : Service Networking ------------------
+
+- IP address range of services is handled by kube-api server
+
+	# kube-api-server  --service-cluster-ip-range ipNet (Default 10.0.0.0/24)
+
+	# ps aux | grep -i kube-apiserver
+		kube-apiserver  ......... ........ --service-cluster-ip-range=10.96.0.0/12
+
+
+- Service iptables forwarding rule
+
+			# iptables -L -t net | grep db-service
+			KUBE_SVC_ESDFSDF123			anywhere 	10.103.132.104(IP of service) 			tcp dpt:3306
+			DNAT 						anywhere	anywhere 								tcp to:10.244.1.2:3306
+
+	- We can also see these entries in
+
+		# cat /var/log/kube-proxy.log
+
+1) What is the IP address range given to a POD.
+
+	# ip addr show ens3
+
+
+2) What is the range of IP addresses configured for PODs on this cluster?
+
+	# kubectl logs <weave-pod-name> weave -n kube-system 	<<<< and look for ipalloc-range
+
+
+				pod-name 	 cont-name
+	# k logs weave-net-hdwjj weave -n kube-system | grep -i alloc
+INFO: 2020/07/05 09:32:41.259374 Command line options: map[conn-limit:200 datapath:datapath db-prefix:/weavedb/weave-net docker-api: expect-npc:true host-root:/host http-addr:127.0.0.1:6784 ipalloc-init:consensus=1 ipalloc-range:10.32.0.0/12 metrics-addr:0.0.0.0:6782 name:6a:d3:47:eb:80:2e nickname:master no-dns:true port:6783]
+
+
+
+3) What is the IP Range configured for the services within the cluster?
+
+	# cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep cluster-ip-range
+
+	# cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -i cluster-ip
+    - --service-cluster-ip-range=10.96.0.0/12
+
+
+4) What type of proxy is the kube-proxy configured to use?
+
+	# kubectl logs kube-proxy-ft6n7 -n kube-system 		<<<< check logs here
+
+
+
+
+-------------- lab 6 : Core DNS ------------------
+
+
+- 		# cat /etc/coredns/Corefile
+
+		- This core file is passed as a configmap object
+
+		# kubectl get configmap -n kube-system	
+
+
+- Kubelet service is responsible to inject the CoreDNS service IP into each Pod.
+
+			----------------------------------------
+			# cat /var/lib/kubelet/config.yaml
+			...
+			clusterDNS:
+			- 10.96.0.10
+			clusterDomain: cluster.local
+			----------------------------------------
+
+		- The resolv.conf has following entry which allows to search the service in default domain
+
+			--------------------------------------------
+			# cat /etc/resolv.conf
+			nameserver    10.96.0.10
+			search 		default.svc.cluster.local  	svc.cluster.local  	cluster.local      <<<< this entry
+			--------------------------------------------
+
+			# nslookup web-service
+			# host web-service        <<<< this resolves to web-service.svc.cluster.local
+
+
+
+- Where is the configuration file located for configuring the CoreDNS service?
+	
+		# /etc/coredns/Corefile
+
+
+
+- From the hr pod nslookup the mysql service and redirect the output to a file /root/nslookup.out
+
+	# k exec -it hr -- nslookup mysql.payroll
+		Server:         10.96.0.10
+		Address:        10.96.0.10#53
+
+		Name:   mysql.payroll.svc.cluster.local
+		Address: 10.109.245.10
+
+
+
+-------------- lab 7 : Core DNS 1 ------------------
+
+1) We have deployed Ingress Controller, resources and applications. Explore the setup.
+Note: They are in different namespaces.
+
+	# k get all --all-namespaces
+
+
+6) Which namespace is the Ingress Resource deployed in?
+
+	# k get ing --all-namespaces
+
+
+8) What is the Host configured on the ingress-resource?
+9) What backend is the /wear path on the Ingress configured with?
+10) At what path is the video streaming application made available on the Ingress?
+
+	# kubectl describe ingress --namespace app-space
+
+
+
+
+14) You are requested to change the URLs at which the applications are made available.
+Make the video application available at /stream.
+
+	# k edit ing ingress-wear-watch -n app-space
+			>>>> replace "/watch" with "/stream"
+
+
+
+
+22) You are requested to make the new application available at /pay.
+Identify and implement the best approach to making this application available on the ingress controller and test to make sure its working. Look into annotations: rewrite-target as well.
+
+	>>>> search in kubernetes.io "ingress"
+
+	----------------------------
+	apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: test-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  namespace: critical-space
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /pay
+        pathType: Prefix
+        backend:
+          serviceName: pay-service
+          servicePort: 8282
+	----------------------------
+
+
+
+-------------- lab 8 : Core DNS 2 ------------------			
+
+2) Let us now deploy an Ingress Controller. First, create a namespace called 'ingress-space'.
+
+	# k create ns ingress-space
+
+
+
+3) The NGINX Ingress Controller requires a ConfigMap object. Create a ConfigMap object in the ingress-space.
+
+	# k create cm nginx-configuration -n ingress-space
+
+
+4) The NGINX Ingress Controller requires a ServiceAccount. Create a ServiceAccount in the ingress-space.
+		- Name: ingress-serviceaccount
+
+	# k create sa ingress-serviceaccount -n ingress-space
+
+
+
+5) We have created the Roles and RoleBindings for the ServiceAccount. Check it out!
+
+	# k get roles -n ingress-space
+	# k get rolebindings -n ingress-space
+
+
+6) Let us now deploy the Ingress Controller. Create a deployment using the file given.
+The Deployment configuration is given at /root/ingress-controller.yaml. 
+
+		There are several issues with it. Try to fix them.
+
+--------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingress-controller
+  namespace: ingress-space
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: nginx-ingress
+  template:
+    metadata:
+      labels:
+        name: nginx-ingress
+    spec:
+      serviceAccountName: ingress-serviceaccount
+      containers:
+        - name: nginx-ingress-controller
+          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.21.0
+          args:
+            - /nginx-ingress-controller
+            - --configmap=$(POD_NAMESPACE)/nginx-configuration
+            - --default-backend-service=app-space/default-http-backend
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - name: http
+              containerPort: 80
+            - name: https
+              containerPort: 443
+--------------------------------
+
+
+7) Let us now create a service to make Ingress available to external users.
+		Create a service following the given specs.
+
+	Name: ingress
+	Type: NodePort
+	Port: 80
+	TargetPort: 80
+	NodePort: 30080
+	Use the right selector
+
+	# kubectl expose deployment -n ingress-space ingress-controller --type=NodePort --port=80 --name=ingress --dry-run -o yaml >ingress.yaml
+
+		- After that edit the "nodePort=30080"
+
+-------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  name: ingress
+  namespace: ingress-space
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+    nodePort: 30080
+  selector:
+    name: nginx-ingress
+  type: NodePort
+status:
+  loadBalancer: {}
+-------------------------------------------------------------
+
+	
+8) Create the ingress resource to make the applications available at /wear and /watch on the Ingress service.
+		Create the ingress in the app-space
+
+
+	Ingress Created
+	Path: /wear
+	Path: /watch
+	Configure correct backend service for /wear
+	Configure correct backend service for /watch
+	Configure correct backend port for /wear service
+	Configure correct backend port for /watch service
+
+
+------------------------------------
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: test-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  namespace: appspace
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /wear
+        backend:
+          serviceName: wear-service
+          servicePort: 8080
+      - path: /watch
+        backend:
+          serviceName: video-service
+          servicePort: 8080
+------------------------------------

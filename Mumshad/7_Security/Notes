@@ -478,7 +478,7 @@
 				  - key encipherment
 				  - server auth
 				  request:
-				  	ABCDEFGHIJKLMNOP
+				  	ABCDEFGHIJKLMNOP----BASE64
 				----------------------------------------------------------------------------
 
 			3) Admin checks the new CSR

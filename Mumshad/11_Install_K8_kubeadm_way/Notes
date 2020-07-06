@@ -1,0 +1,55 @@
+################ Notes ##############
+
+- Steps to install the kubernetes using "kubeadm" tools :
+
+	1) Install Docker on all nodes
+	2) Install "kubeadm" on all nodes
+	3) Initialize the master server : install all components on master server
+	4) Install the POD networking solution : CNI
+	5) Join the Worker nodes to the master node
+
+
+- Practise lab :
+
+
+	1) In documentation page search for "kubeadm install"
+
+	2) - On Master node :
+			- Update the repository and GPG for k8 on master node.
+			- Install kubeadm, kubelet and kubectl
+
+	3) - On node01 :
+			- Update the repository and GPG on k8 on master node.
+			- Install kubeadm, kubelet and kubectl
+
+	4) Bootstrap kubernetes cluster :
+		- At the bottom of the same page click on "Using kubeadm to Create Cluster"
+
+			# kubeadm init      <<< Only on master
+
+	5) Copy the kube/config file to directory. Copy those commands on the notepad.
+
+		# mkdir command <<< on master node
+
+	6) On worker node.
+
+		# kubeadm token create --help
+		# kubeadm token create --print-join-command  	<<< In case you missed the above join command on master node
+
+		# run command of join on the node01
+
+
+	7) # kubectl get nodes
+
+	8) On same page scroll down and click on Weave option.
+
+		- Run this on both the nodes
+
+			# sysctl rule
+			# kubectl apply -f weave-plugin
+
+	1. make IP table changes on both the nodes master and node01
+	2. Install the kubeadm package on master and node01
+	3. Master - Bootstrap master "kubeadm init" -- and run that mkdir command
+	4. Node01 - join node01 using "kubeadm join command"
+	5. Then install Weave only on master

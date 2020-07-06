@@ -1,8 +1,11 @@
 ###### Topicwise URL ######
 
 
+2) --------------------------------------------- CoreConcepts ------------------------------------------------------
 
-2) --------------------------------------------- Scheduling : ------------------------------------------------------
+- Need to check regarding scale for deployments
+
+3) --------------------------------------------- Scheduling : ------------------------------------------------------
 
 
 # kp --selector env=prod,bu=finance,tier=frontend
@@ -40,8 +43,15 @@
 
 		- Specify in the pod
 
-		spec:
-  		  schedulerName: my-scheduler
+-----------------
+	metadata:
+	  name: nginx
+	spec:
+	  containers:
+	  -  image: nginx
+	     name: nginx
+	  schedulerName: my-scheduler 		<<< Need to Add this
+-----------------
 
 
 
@@ -140,4 +150,89 @@
 
 6) ------------------------------------------ ClusterMaintainance ---------------------------------------------------
 
+
+# kubectl drain node01 --ignore-daemonsets
+
+# kubectl cordon/uncordon master
+
+---------- master ------------
+kubeadm upgrade plan
+apt-get install kubeadm=1.18.0-00
+
+kubeadm upgrade plan v1.18.0
+kubeadm upgrade apply v1.18.0
+
+apt-mark hold kubeadm
+
+apt-get install kubelet=1.18.0-00
+systemctl restart kubelet
+
+---------- worker ------------
+apt-get install kubeadm=1.18.0-00
+kubeadm upgrade node
+
+apt-get install kubelet=1.18.0-00
+systemctl restart kubelet
+------------------------------
+
+
+# ETCDCTL_API=3 etcdctl snapshot save --help
+# ETCDCTL_API=3 etcdctl snapshot restore -help
+
+
+-------------------------------
+
+kubectl describe pod etcd-master -n kube-system | egrep -i "crt|listen|key"
+      --cert-file=/etc/kubernetes/pki/etcd/server.crt
+      --key-file=/etc/kubernetes/pki/etcd/server.key
+      --listen-client-urls=https://127.0.0.1:2379,https://172.17.0.71:2379
+      --listen-metrics-urls=http://127.0.0.1:2381
+      --listen-peer-urls=https://172.17.0.71:2380
+      --peer-cert-file=/etc/kubernetes/pki/etcd/peer.crt
+      --peer-key-file=/etc/kubernetes/pki/etcd/peer.key
+      --peer-trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt
+      --trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt
+	  
+export ECTDCTL_API=3
+
+ETCDCTL_API=3 etcdctl snapshot save --help
+
+ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 \
+	--cacert=/etc/kubernetes/pki/etcd/ca.crt \
+	--cert=/etc/kubernetes/pki/etcd/server.crt \
+	--key=/etc/kubernetes/pki/etcd/server.key 
+	snapshot save /tmp/snapshot-pre-boot.db
+
+
+
+ETCDCTL_API=3 etcdctl snapshot restore --help
+
+ETCDCTL_API=3 etcdctl --endpoints=https://[127.0.0.1]:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+     --name=master \
+     --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key \
+     --data-dir /var/lib/etcd-from-backup \
+     --initial-cluster=master=https://127.0.0.1:2380 \
+     --initial-cluster-token=etcd-cluster-1 \
+     --initial-advertise-peer-urls=https://127.0.0.1:2380 \
+     snapshot restore /tmp/snapshot-pre-boot.db
+	 
+	 
+	- Edit the following lines in the static pod of the cluster.
+	
+		--data-dir=/var/lib/etcd-from-backup
+		
+		--initial-cluster-token=etcd-cluster-1 			<<<< Add this
+
+
+11) --------------------------------------- Install K8 kubeadm way -----------------------------------------------
+
+	1. make IP table changes on both the nodes master and node01
+	2. Install the kubeadm package on master and node01
+	3. Master - Bootstrap master "kubeadm init" -- and run that mkdir command
+	4. Node01 - join node01 using "kubeadm join command"
+	5. Then install Weave only on master
+
+
+
+7) --------------------------------------- Security -----------------------------------------------
 
