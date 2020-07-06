@@ -1,87 +1,482 @@
-############## Commands ################
-
-53 is DNS port number
+#################### Commands ####################
 
 
+-------------- lab 1 : View Certificate Details ------------------
+
+1) Identify the certificate file used for the kube-api server
+
+2) Identify the Certificate file used to authenticate kube-apiserver as a client to ETCD Server
+
+3) Identify the key used to authenticate kubeapi-server to the kubelet server
 
 
-# openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text -noout
+# k describe pod kube-apiserver-master -n kube-system | grep -i crt
+      --client-ca-file=/etc/kubernetes/pki/ca.crt
+      --etcd-cafile=/etc/kubernetes/pki/etcd/ca.crt
+      --etcd-certfile=/etc/kubernetes/pki/apiserver-etcd-client.crt 					<<<< 2
+      --kubelet-client-certificate=/etc/kubernetes/pki/apiserver-kubelet-client.crt
+      --proxy-client-cert-file=/etc/kubernetes/pki/front-proxy-client.crt
+      --requestheader-client-ca-file=/etc/kubernetes/pki/front-proxy-ca.crt
+      --tls-cert-file=/etc/kubernetes/pki/apiserver.crt 								<<<< 1
 
-# /etc/kubernetes/manifests/etcd.yaml
+# k describe pod kube-apiserver-master -n kube-system | grep -i key
+      --etcd-keyfile=/etc/kubernetes/pki/apiserver-etcd-client.key
+      --kubelet-client-key=/etc/kubernetes/pki/apiserver-kubelet-client.key 			<<<< 3
+      --proxy-client-key-file=/etc/kubernetes/pki/front-proxy-client.key
+      --service-account-key-file=/etc/kubernetes/pki/sa.pub
+      --tls-private-key-file=/etc/kubernetes/pki/apiserver.key
 
-# /etc/kubernetes/pki/etcd/
-# /etc/kubernetes/pki
+or you can also check in "cat /etc/kubernetes/manifests/kube-apiserver.yaml"
 
-- Search "csr" in kubernetes.io to create new CSR
 
-# kubectl certificate approve akshay
+# k describe pod etcd-master -n kube-system | grep -i crt
+      --cert-file=/etc/kubernetes/pki/etcd/server.crt
+      --peer-cert-file=/etc/kubernetes/pki/etcd/peer.crt
+      --peer-trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt
+      --trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt
 
-# kubectl certificate deny agent-smith
 
-# k delete csr agent-smith
+6) What is the Common Name (CN) configured on the Kube API Server Certificate?
+7) What is the name of the CA who issued the Kube API Server Certificate?
 
-----------------------------------------------
+	k describe pod kube-apiserver-master -n kube-system | grep -i crt
+      --client-ca-file=/etc/kubernetes/pki/ca.crt
+      --etcd-cafile=/etc/kubernetes/pki/etcd/ca.crt
+      --etcd-certfile=/etc/kubernetes/pki/apiserver-etcd-client.crt
+      --kubelet-client-certificate=/etc/kubernetes/pki/apiserver-kubelet-client.crt
+      --proxy-client-cert-file=/etc/kubernetes/pki/front-proxy-client.crt
+      --requestheader-client-ca-file=/etc/kubernetes/pki/front-proxy-ca.crt
+      --tls-cert-file=/etc/kubernetes/pki/apiserver.crt
 
-# kubectl config view
+    # openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text | grep -i cn -A4
+        Issuer: CN = kubernetes 						<<<<
+        Validity
+            Not Before: Jul  6 08:15:15 2020 GMT
+            Not After : Jul  6 08:15:16 2021 GMT
+        Subject: CN = kube-apiserver 					<<<<
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
 
-# kubectl config view --kubeconfig /root/my-kube-config
 
-# kubectl config --kubeconfig=/root/my-kube-config use-context research
 
-# kubectl config current-context
 
------------------------------------------------
+8) Which of the below alternate names is not configured on the Kube API Server Certificate?
 
-- identify the authorization 
+	# openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text | grep -i alternative -A2
+            X509v3 Subject Alternative Name:
+                DNS:master, DNS:kubernetes, DNS:kubernetes.default, DNS:kubernetes.default.svc, DNS:kubernetes.default.svc.cluster.local, IP Address:10.96.0.1,IP Address:172.17.0.19
+    Signature Algorithm: sha256WithRSAEncryption
+
+
+# openssl x509 -in /etc/kubernetes/pki/etcd/server.crt -text | grep -i cn -A4
+
+
+12) Kubectl suddenly stops responding to your commands. Check it out! Someone recently modified the /etc/kubernetes/manifests/etcd.yaml file
+
+	You are asked to investigate and fix the issue. Once you fix the issue wait for sometime for kubectl to respond. Check the logs of the ETCD container.
+
+		# docker ps -a | grep -i etcd 		<<<< check for expired container here
+
+		# docker logs -f expired_container
+
+
+13) The kube-api server stopped again! Check it out. Inspect the kube-api server logs and identify the root cause and fix the issue.
+
+
+Run docker ps -a command to identify the kube-api server container. Run docker logs container-id command to view the logs.
+
+	- The path of ETCD CA certificate is different, need to correct that one.
+
+
+
+
+-------------- lab 2 : Certificates API ------------------
+
+- search in k8.io
 	
-	# k describe pod kube-apiserver-master -n kube-system | grep -i auth
+		- csr
+		- csr approve , 2nd search option
+
+9) Hmmm.. You are not aware of a request coming in. What groups is this CSR requesting access to?
+		Check the details about the request. Preferebly in YAML.
+
+
+	-------------------------------------------------
+	k get csr agent-smith -o yaml
+apiVersion: certificates.k8s.io/v1beta1
+kind: CertificateSigningRequest
+metadata:
+  creationTimestamp: "2020-07-06T09:33:53Z"
+  name: agent-smith
+  resourceVersion: "945"
+  selfLink: /apis/certificates.k8s.io/v1beta1/certificatesigningrequests/agent-smith
+  uid: 0f9a6807-bb31-482c-8c7a-58634fa12210
+spec:
+  groups:
+  - system:masters
+  - system:authenticated
+	-------------------------------------------------
+
+
+master $ k get csr
+NAME          AGE     REQUESTOR                 CONDITION
+agent-smith   110s    agent-x                   Pending
+akshay        3m39s   kubernetes-admin          Approved,Issued
+csr-2sb6g     7m41s   system:bootstrap:96771a   Approved,Issued
+csr-r9zmt     8m      system:node:master        Approved,Issued
+master $ k certificate deny agent-smith
+certificatesigningrequest.certificates.k8s.io/agent-smith approved
+master $ k get csr
+NAME          AGE     REQUESTOR                 CONDITION
+agent-smith   2m3s    agent-x                   Denied
+akshay        3m52s   kubernetes-admin          Approved,Issued
+csr-2sb6g     7m54s   system:bootstrap:96771a   Approved,Issued
+csr-r9zmt     8m13s   system:node:master        Approved,Issued
+master $ k delete csr agent-smith
+certificatesigningrequest.certificates.k8s.io "agent-smith" deleted
+master $
+master $ k get csr
+NAME        AGE     REQUESTOR                 CONDITION
+akshay      5m27s   kubernetes-admin          Approved,Issued
+csr-2sb6g   9m29s   system:bootstrap:96771a   Approved,Issued
+csr-r9zmt   9m48s   system:node:master        Approved,Issued
+
+
+
+
+-------------- lab 3 : KubeConfig ------------------
+
+2) How many Clusters are defined in the default kubeconfig file?
+3) How many Users are defined in the default kubeconfig file?
+
+	# kubectl config view
+
+
+5) What is the user configured in the current context?
+6) What is the name of the cluster configured in the default kubeconfig file?
+	
+	# kubectl config current-context
+		kubernetes-admin@kubernetes
+
+
+7) A new kubeconfig file named 'my-kube-config' is created. It is placed in the /root directory. How many clusters are defined in the kubectl file?
+8) How many contexts are configured in the 'my-kube-config' file?
+
+	# kubectl config --kubeconfig=/root/my-kube-config view
+
+
+
+12) I would like to use the dev-user to access test-cluster-1. Set the current context to the right one so I can do that.
+
+	# kubectl config --kubeconfig=/root/my-kube-config use-context research
+
+
+13) We don't want to have to specify the kubeconfig file option on each command. Make the my-kube-config file the default kubeconfig.
+
+	# cp /root/my-kube-config ~/.kube/config
+
+
+14) With the current-context set to research, we are trying to access the cluster. However something seems to be wrong. Identify and fix the issue.
+
+	# k get pods
+error: unable to read client-cert /etc/kubernetes/pki/users/dev-user/developer-user.crt for dev-user due to open /etc/kubernetes/pki/users/dev-user/developer-user.crt: no such file or directory
+
+		- Edit ~/.kube/config file appropriately
+
+
+-------------- lab 4 : RBAC ------------------
+
+
+1) Inspect the environment and identify the authorization modes configured on the cluster.
+
+	# k describe pod kube-apiserver-master -n kube-system | grep -i authorization
       --authorization-mode=Node,RBAC
-	  
-# k get role --all-namespaces --no-headers | wc -l
-12
 
-# k get rolebinding -n kube-system
-# k describe rolebinding kube-proxy -n kube-proxy
 
-# k get pods --as dev-user
+2) How many roles exist in the default namespace?
 
-- Search for "role" in the kubernetes.io
+	# k get roles
 
-# k get role developer -n blue -o yaml > developer-role-blue.yaml
 
-# k edit role developer -n blue
+3) How many roles exist in all namespaces together?
 
-- Search for "role" in the kubernetes.io >> at right side click on "Referring to resources"
-	
-	# k create deployment nginx --image=nginx -- as dev-user -n blkubectl api-resources | grep -i storageclassesue
-	
--------------------
+	# k get roles --all-namespaces --no-headers | wc -l
 
-# k describe clusterrolebinding cluster-admin
 
-----
+4) What are the resources the kube-proxy role in the kube-system namespce is given access to?
+5) What actions can the kube-proxy role perform on configmaps ?
 
-- To get a API groups of a resources
+	# k get roles --all-namespaces --no-headers | grep -i kube-proxy
+		kube-system   kube-proxy                                       2020-07-06T11:14:24Z
 
-# kubectl api-resources | grep -i volumes
-persistentvolumes                 pv                                          false        PersistentVolume
-# kubectl api-resources | grep -i storageclasses
+	# k describe role kube-proxy -n kube-system
+		Name:         kube-proxy
+		Labels:       <none>
+		Annotations:  <none>
+		PolicyRule:
+		  Resources   Non-Resource URLs  Resource Names  Verbs
+		  ---------   -----------------  --------------  -----
+		  configmaps  []                 [kube-proxy]    [get]
+
+
+6) Which account is the kube-proxy role assigned to it?
+
+	# k describe rolebinding kube-proxy -n kube-system
+		Subjects:
+		  Kind   Name                                             Namespace
+		  ----   ----                                             ---------
+		  Group  system:bootstrappers:kubeadm:default-node-token
+
+
+8) A user dev-user is created. User's details have been added to the kubeconfig file. Inspect the permissions granted to the user. Check if the user can list pods in the default namespace.
+
+	# k get pods --as dev-user
+		Error from server (Forbidden): pods is forbidden: User "dev-user" cannot list resource "pods" in API group "" in the namespace "default"		
+
+
+9) Create the necessary roles and role bindings required for the dev-user to create, list and delete pods in the default namespace.
+
+	- search "role" in k8.io page
+
+		Role: developer
+		Role Resources: pods
+		Role Actions: list
+		Role Actions: create
+		RoleBinding: dev-user-binding
+		RoleBinding: Bound to dev-user
+
+------------------------------------------------	
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: developer
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["pods"]
+  verbs: ["create", "delete", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+# This role binding allows "jane" to read pods in the "default" namespace.
+# You need to already have a Role named "pod-reader" in that namespace.
+kind: RoleBinding
+metadata:
+  name: dev-user-binding
+  namespace: default
+subjects:
+# You can specify more than one "subject"
+- kind: User
+  name: dev-user # "name" is case sensitive
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  # "roleRef" specifies the binding to a Role / ClusterRole
+  kind: Role #this must be Role or ClusterRole
+  name: developer # this must match the name of the Role or ClusterRole you wish to bind to
+  apiGroup: rbac.authorization.k8s.io
+------------------------------------------------	
+
+
+10) The dev-user is trying to get details about the dark-blue-app pod in the blue namespace. Investigate and fix the issue.
+
+
+	--------------------------------------------------------
+	# k get pod dark-blue-app -n blue --as dev-user
+		Error from server (Forbidden): pods "dark-blue-app" is forbidden: User "dev-user" cannot get resource "pods" in API group "" in the namespace "blue"
+
+
+	# k get pod dark-blue-app -n blue --as dev-user
+		Error from server (Forbidden): pods "dark-blue-app" is forbidden: User "dev-user" cannot get resource "pods" in API group "" in the namespace "blue"
+		master $
+		master $ k get role -n blue
+		NAME        CREATED AT
+		developer   2020-07-06T11:17:06Z
+		master $ k describe role developer -n blue
+		Name:         developer
+		Labels:       <none>
+		Annotations:  <none>
+		PolicyRule:
+		  Resources  Non-Resource URLs  Resource Names  Verbs
+		  ---------  -----------------  --------------  -----
+		  pods       []                 [blue-app]      [get watch create delete]     <<<< notice wrong name blue-app*
+
+
+
+	# k edit role developer -n blue
+
+
+	# k describe role developer -n blue
+		Name:         developer
+		Labels:       <none>
+		Annotations:  <none>
+		PolicyRule:
+		  Resources  Non-Resource URLs  Resource Names   Verbs
+		  ---------  -----------------  --------------   -----
+		  pods       []                 [dark-blue-app]  [get watch create delete]  <<<< correct name dark-blue-app**
+
+
+	# k get pod dark-blue-app -n blue --as dev-user
+		NAME            READY   STATUS    RESTARTS   AGE
+		dark-blue-app   1/1     Running   0          21m
+
+	--------------------------------------------------------
+
+
+
+11) Grant the dev-user permissions to create deployments in the blue namespace.
+
+
+	--------------------------------------------------------
+	apiVersion: rbac.authorization.k8s.io/v1
+	kind: Role
+	metadata:
+	  # "namespace" omitted since ClusterRoles are not namespaced
+	  name: dev-user-blue-role
+	  namespace: blue
+	rules:
+	- apiGroups: ["extensions","apps"]
+	  #
+	  # at the HTTP level, the name of the resource for accessing Secret
+	  # objects is "secrets"
+	  resources: ["deployments"]
+	  verbs: ["create"]
+	---
+	apiVersion: rbac.authorization.k8s.io/v1
+	# This role binding allows "jane" to read pods in the "default" namespace.
+	# You need to already have a Role named "pod-reader" in that namespace.
+	kind: RoleBinding
+	metadata:
+	  name: dev-user-blue-role-binding
+	  namespace: blue
+	subjects:
+	# You can specify more than one "subject"
+	- kind: User
+	  name: dev-user # "name" is case sensitive
+	  apiGroup: rbac.authorization.k8s.io
+	roleRef:
+	  # "roleRef" specifies the binding to a Role / ClusterRole
+	  kind: Role #this must be Role or ClusterRole
+	  name: dev-user-blue-role # this must match the name of the Role or ClusterRole you wish to bind to
+	  apiGroup: rbac.authorization.k8s.io
+	--------------------------------------------------------
+
+	# k create -f dev-user-deployment-role.yaml
+		role.rbac.authorization.k8s.io/dev-user-blue-role created
+		rolebinding.rbac.authorization.k8s.io/dev-user-blue-role-binding created
+
+	# k create deployment nginx --image=nginx -n blue --as dev-user
+		deployment.apps/nginx created
+
+
+-------------- lab 5 : RBAC ------------------
+
+1) How many ClusterRoles do you see defined in the cluster?
+
+	# k get clusterroles --all-namespaces --no-headers | wc -l
+
+
+2) How many ClusterRoleBindings exist on the cluster?
+
+	# k get clusterrolebindings --all-namespaces --no-headers | wc -l
+
+
+3) What namespace is the cluster-admin clusterrole part of?
+
+	# k get clusterroles --all-namespaces | grep -i cluster-admin
+
+
+4) What namespace is the cluster-admin clusterrole part of?
+
+		<<<< Cluster roles are cluster wide and not part of any namespace
+
+
+5) What user/groups are the cluster-admin role bound to?
+	The ClusterRoleBinding for the role is with the same name.
+
+	# k describe clusterrolebinding cluster-admin
+
+
+6) A new user michelle joined the team. She will be focusing on the nodes in the cluster. Create the required ClusterRoles and ClusterRoleBindings so she gets access to the nodes.
+
+	- Grant permission to list nodes
+
+	# k api-resources | head
+NAME          SHORTNAMES   APIGROUP    NAMESPACED   KIND
+bindings                                                                      true         Binding
+	# k api-resources | grep -i node
+nodes         no                        false        Node
+
+--------------------------------------------	
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  # "namespace" omitted since ClusterRoles are not namespaced
+  name: list-nodes
+rules:
+- apiGroups: [""]
+  #
+  # at the HTTP level, the name of the resource for accessing Secret
+  # objects is "secrets"
+  resources: ["nodes"]
+  verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+# This cluster role binding allows anyone in the "manager" group to read secrets in any namespace.
+kind: ClusterRoleBinding
+metadata:
+  name: list-nodes-role-bindings
+subjects:
+- kind: User
+  name: michelle # Name is case sensitive
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: list-nodes
+  apiGroup: rbac.authorization.k8s.io
+--------------------------------------------
+
+	# k create -f cluster-roles.yaml
+		clusterrole.rbac.authorization.k8s.io/list-nodes created
+		clusterrolebinding.rbac.authorization.k8s.io/list-nodes-role-bindings created
+
+
+
+7) michelle's responsibilities are growing and now she will be responsible for storage as well. Create the required ClusterRoles and ClusterRoleBindings to allow her access to Storage.
+
+		ClusterRole: storage-admin
+		Resource: persistentvolumes
+		Resource: storageclasses
+		ClusterRoleBinding: michelle-storage-admin
+		ClusterRoleBinding Subject: michelle
+		ClusterRoleBinding Role: storage-admin	
+
+# k api-resources | head -n 1
+NAME                              SHORTNAMES   APIGROUP                       NAMESPACED   KIND
+
+# k api-resources | grep -i storageclass
 storageclasses                    sc           storage.k8s.io                 false        StorageClass
 
---------------
-cat storage-admin-role.yaml
+# k api-resources | grep -i persistentvolume
+persistentvolumeclaims            pvc                                         true         PersistentVolumeClaim
+persistentvolumes                 pv                                          false        PersistentVolume
+
+
+--------------------------------------------
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   # "namespace" omitted since ClusterRoles are not namespaced
   name: storage-admin
 rules:
-- apiGroups: ["","storage.k8s.io"]
+- apiGroups: [""]
   #
   # at the HTTP level, the name of the resource for accessing Secret
   # objects is "secrets"
-  resources: ["persistentvolumes","storageclasses"]
-  verbs: ["get","list"]
+  resources: ["persistentvolumes"]
+  verbs: ["create", "list", "delete", "watch", "get"]
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["create", "list", "delete", "watch", "get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 # This cluster role binding allows anyone in the "manager" group to read secrets in any namespace.
@@ -94,82 +489,59 @@ subjects:
   apiGroup: rbac.authorization.k8s.io
 roleRef:
   kind: ClusterRole
-  name: storage-admin
+  name: storage-role
   apiGroup: rbac.authorization.k8s.io
---------------
-
-OR
-
-cat /var/answers/michelle-storage-admin.yaml
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: storage-admin
-rules:
-- apiGroups: [""]
-  resources: ["persistentvolumes"]
-  verbs: ["get", "watch", "list", "create", "delete"]
-- apiGroups: ["storage.k8s.io"]
-  resources: ["storageclasses"]
-  verbs: ["get", "watch", "list", "create", "delete"]
-
----
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: michelle-storage-admin
-subjects:
-- kind: User
-  name: michelle
-  apiGroup: rbac.authorization.k8s.io
-roleRef:
-  kind: ClusterRole
-  name: storage-admin
-  apiGroup: rbac.authorization.k8s.iomaster
-  
------- Image security ----------
-
-- search for "docker-regsitry" in k8.io
-
-	- Prepend registry name before the container image
-------
-  imagePullSecrets:
-  - name: private-reg-cred
-------
-
-k create secret docker-registry private-reg-cred --docker-server=myprivateregistry.com:5000 --docker-username=dock_user --docker-password=dock_password --docker-email=dock_user@myprivateregistry.com
+--------------------------------------------	
 
 
-------- security context --------
 
-- search for "security context" in kubernetes.io page
 
-kubectl exec -it ubuntu-sleeper -- date -s '19 APR 2012 11:14:00'
+--------------------------------- lab 6 : Image Security -----------------------------------------------
 
--------
-error: unable to match a printer suitable for the output format "wdie", allowed formats are: custom-columns,custom-columns-file,go-template,go-template-file,json,jsonpath,jsonpath-file,name,template,templatefile,wide,yaml
-master $ k get pod -o wide
-NAME             READY   STATUS    RESTARTS   AGE   IP           NODE     NOMINATED NODE   READINESS GATES
-ubuntu-sleeper   1/1     Running   0          33s   10.244.1.3   node01   <none>           <none>
-master $
-master $ k describe pod ubuntu-sleeper -o yaml | grep -i securitycontext -A6
-Error: unknown shorthand flag: 'o' in -o
-See 'kubectl describe --help' for usage.
-master $ k get pod ubuntu-sleeper -o yaml | grep -i securitycontext -A6
-        f:securityContext: {}
-        f:terminationGracePeriodSeconds: {}
-    manager: python-requests
---------
 
-	# k exec -it ubuntu-sleeper -- date -s '19 APR 2012 11:14:00'
-	Thu Apr 19 11:14:00 UTC 2012
-	
-	
-	
-------- Network Policies ----------
+2) We decided to use a modified version of the application from an internal private registry. Update the image of the deployment to use a new image from myprivateregistry.com:5000
 
-- search for "network policy" in kubernetes.io page
+	- Use the kubectl edit deployment command to edit the image name to 
+			"myprivateregistry.com:5000/nginx:alpine"
 
-# kubectl get networkpolicy
 
+
+4) Create a secret object with the credentials required to access the registry
+
+
+	- search for "regcred" or "docker registry" in k8.io
+
+Name: private-reg-cred 
+Username: dock_user 
+Password: dock_password 
+Server: myprivateregistry.com:5000 
+Email: dock_user@myprivateregistry.com
+
+---------------------------------
+kubectl create secret docker-registry private-reg-cred \
+	--docker-server=myprivateregistry.com:5000 \
+	--docker-username=dock_user \
+	--docker-password=dock_password \
+	--docker-email=dock_user@myprivateregistry.com
+---------------------------------
+
+
+5) Configure the deployment to use credentials from the new secret to pull images from the private registry
+
+	# k edit deployment web
+
+		- and then add the secret
+
+
+-----------------------------------
+    spec:
+      containers:
+      - image: myprivateregistry.com:5000/nginx:alpine
+        imagePullPolicy: IfNotPresent
+        name: nginx
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      imagePullSecrets:                             <<<<
+      - name: private-reg-cred
+-----------------------------------		
