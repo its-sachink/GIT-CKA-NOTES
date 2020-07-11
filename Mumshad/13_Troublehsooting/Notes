@@ -1,0 +1,119 @@
+######################## Notes #######################
+
+
+- Application Failure :
+
+	Draw map of the application as below,
+
+
+		  User
+			|
+		Web Service
+			^
+			|
+		Web Pod
+			^
+			|
+		DB Service
+			^
+			|
+		DB Pod
+
+
+	1) Check the Application using the node port IP
+
+			# curl http://web-service-ip:node-port
+
+
+	2) Check the service, has it discovered a endpoints for webpod
+
+			# kubectl describe service web-service
+
+				- Compare the selector to the service with once on the pod
+
+
+	3) Check the Pod itself, make sure it is running
+
+			# kubectl get pod
+
+				- The status of the Pod and number of restarts will give you an idea
+
+			# kubectl describe pod
+
+				- Check the events related to the pods
+
+			# kubectl logs podname -f
+
+			# kubectl logs podname -f --previous 	<<< to check the previous pod logs
+
+				- Check the log of the application
+
+
+	4) Check the status of the DB service
+
+	5) Finally check the DB Pod itself, check the logs
+
+
+
+
+
+
+- Control Plane Failure :
+
+
+	- Check status of Node
+
+			# k get nodes
+
+
+	- Check status of Pod
+
+			# k get pods
+
+
+	- If we have control plane components deployed as a Pod
+
+			# k get pods -n kube-system
+
+	- If control plane components deployed as a services
+
+
+		- On master server :
+
+			# service kube-apiserver status
+
+			# service kube-controller-manager status
+
+			# service kube-scheduler status
+
+		
+		- On worked nodes :
+
+			# service kubelet status
+
+			# service kube-proxy status
+
+
+	- Check logs of control plane components
+
+			# kubectl logs kube-apiserver -n kube-system 	<<<< if installed via kubeadm
+
+			# journalctl -u kube-apiserver					<<<< if installed as a services on a master node
+
+			refer : https://kubernetes.io/docs/tasks/debug-application-cluster/debug-cluster/
+
+				search "troubleshooting clusters"
+
+
+- Worker Node Failure :
+
+	# k get nodes
+
+	# k describe node worker-1		<<<< Check conditions section, check the status in that
+
+
+	# service kubelet status
+
+	# journatctl -u kubelet
+
+	# openssl x509 -in /var/lib/kubelet/worker-1.crt -text

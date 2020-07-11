@@ -1,0 +1,102 @@
+########################## Commands ###########################
+
+------------------------------- Lab 1 : Application Failure ----------------------------------
+
+
+1) Troubleshooting Test 1: A simple 2 tier application is deployed in the alpha namespace. It must display a green web page on success. Click on the app tab at the top of your terminal to view your application. It is currently failed. Troubleshoot and fix the issue.
+
+
+- Check the DB service name
+
+- Check the target endpoint in the mysql service and compare it with the architecture.
+
+- Check the labels of pod and defined in the service
+
+- Check the DB username
+
+- Check username and password of mysql
+
+- Check the port exposed by service and the username of mysql
+
+
+
+------------------------------- Lab 2 : Control Plane Failure ----------------------------------
+
+Refer : https://kubernetes.io/docs/tasks/debug-application-cluster/debug-cluster/
+
+
+- Check scheduler status
+
+	# kubectl describe pod kube-scheduler-master -n kube-system
+
+	# kubectl logs 
+
+	# ps aux | grep -i kube-scheduler
+
+	# cat /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+
+		-- Check argument and check for static pod path
+
+- Check kube-controller-manager
+
+	# kubectl describe pod kube-controller-manager -n kube-system
+
+	# kubectl logs kube-controller-manager -n kube-system
+
+	- correct the filename in kube-controller manager
+
+
+- Check how the mount points are mounted on kube-controller-manager pod
+		
+		- Check how the volume is configured
+
+
+
+
+
+
+
+------------------------------- Lab 3 : Worker Node Failure ----------------------------------
+
+
+
+- 	# ps aux | grep -i kubelet
+	
+	# systemctl status kubelet
+
+	# systemctl restart kubelet
+
+
+
+- 	# kubectl describe nodes node01
+
+	# systemctl restart kubelet
+
+	# journalctl -u kubelet
+
+
+	- configuration of kubelet
+
+		# cd /etc/systemd/system/kubelet.serviced/
+
+		# vim 10-kubeadm.conf
+
+		# vim /var/lib/kubelet/config.yaml
+
+		# systemctl daemon-reload
+
+		# systemctl restart kubelet
+
+- wrong port 6553 of kube-api server
+
+	# journalctl -u kubelet
+
+	# kubectl cluster-info 		<<< on master node
+
+		- correct port is 6443
+
+		# vim /etc/kubernetes/kubelet.conf
+
+		# systemctl daemon reload
+
+		# systemctl restart kubelet
