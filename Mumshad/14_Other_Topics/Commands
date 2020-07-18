@@ -80,5 +80,6 @@ master $ kubectl get pv --sort-by=.spec.capacity.storage -o=custom-columns=NAME:
 
 
 # kubectl config view --kubeconfig=my-kube-config -o jsonpath="{.contexts[?(@.context.user=='aws-user')].name}"
-
+or
+# k config view --kubeconfig=/root/my-kube-config -o=jsonpath='{.contexts[?(@.context.user=="aws-user")].name}' > /opt/outputs/aws-context-name
 
