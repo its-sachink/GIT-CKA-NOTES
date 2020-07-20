@@ -179,10 +179,13 @@ systemctl restart kubelet
 # ETCDCTL_API=3 etcdctl snapshot save --help
 # ETCDCTL_API=3 etcdctl snapshot restore -help
 
+# ETCDCTL_API=3 etcdctl snapshot save -h
+# ETCDCTL_API=3 etcdctl snapshot restore -h
+
 
 -------------------------------
 
-kubectl describe pod etcd-master -n kube-system | egrep -i "crt|listen|key"
+-**** kubectl describe pod etcd-master -n kube-system | egrep -i "crt|listen|key"
       --cert-file=/etc/kubernetes/pki/etcd/server.crt
       --key-file=/etc/kubernetes/pki/etcd/server.key
       --listen-client-urls=https://127.0.0.1:2379,https://172.17.0.71:2379
@@ -194,6 +197,10 @@ kubectl describe pod etcd-master -n kube-system | egrep -i "crt|listen|key"
       --trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt
 	  
 export ECTDCTL_API=3
+
+# ETCDCTL_API=3 etcdctl snapshot save -h
+# ETCDCTL_API=3 etcdctl snapshot restore -h
+
 
 ETCDCTL_API=3 etcdctl snapshot save --help
 
@@ -217,13 +224,23 @@ ETCDCTL_API=3 etcdctl --endpoints=https://[127.0.0.1]:2379 --cacert=/etc/kuberne
      snapshot restore /tmp/snapshot-pre-boot.db
 	 
 	 
-	- Edit the following lines in the static pod of the cluster.
+	-**** Edit the following lines in the static pod of the cluster.
 	
 		--data-dir=/var/lib/etcd-from-backup
 		
 		--initial-cluster-token=etcd-cluster-1 			<<<< Add this
 
+		-- check "https" is there
 
+		-- endpoints are in bracket[], do not remove bracket
+
+		-- name "master" is same as "--initial-cluster"
+
+	-**** Then you need to edit the '/etc/kubernetes/manifests/etcd.yaml' file accordingly
+    	--data-dir=/var/lib/etcd-from-backup
+    	--initial-cluster-token=etcd-cluster-1
+
+    	- also the hostPath mounts
 11) --------------------------------------- Install K8 kubeadm way -----------------------------------------------
 
 	1. make IP table changes on both the nodes master and node01

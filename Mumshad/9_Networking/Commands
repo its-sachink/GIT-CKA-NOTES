@@ -60,7 +60,7 @@
 
 - What is the CNI plugin configured to be used on this kubernetes cluster?
 
-	# ls /etc/cni/net.d/		<<<< remember this
+	#** ls /etc/cni/net.d/		<<<< remember this
 
 	# cat /etc/cni/net.d/10-weave.conflist
 
@@ -75,7 +75,7 @@
 
 	# kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
 
-		- search for "kubeadm init", it is a part for installing the weave networking solution at the bottom.
+		-** search for "kubeadm init", it is a part for installing the weave networking solution at the bottom.
 
 
 
@@ -83,7 +83,7 @@
 
  # cat /etc/cni/net.d/net-script.conf 		<<<< contains the details type of plugin and subnet,route to use.
 
-- What is the networking solution used by this cluster.
+-** What is the networking solution used by this cluster.
 
 	# cat /etc/cni/net.d/10-weave.conflist
 
@@ -111,13 +111,22 @@
 	default via 172.17.0.1 dev ens3
 	10.244.2.0/24 dev cni0 proto kernel scope link src 10.244.2.1 	<<<<
 
-
+	#** k exec weave-net-8xlhg -n kube-system -- ip route show default
 
 
 -------------- lab 5 : Service Networking ------------------
 
+-** What is the range of IP addresses configured for PODs on this cluster?
+
+	- Check the weave pods logs using command kubectl logs <weave-pod-name> weave -n kube-system and look for ipalloc-range
+
+	#** k logs weave-net-jcrf4 weave -n kube-system | grep -i alloc
+
 - IP address range of services is handled by kube-api server
 
+	#** $ cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -i cluster-ip
+    - --service-cluster-ip-range=10.96.0.0/12
+	
 	# kube-api-server  --service-cluster-ip-range ipNet (Default 10.0.0.0/24)
 
 	# ps aux | grep -i kube-apiserver
@@ -145,7 +154,7 @@
 
 
 				pod-name 	 cont-name
-	# k logs weave-net-hdwjj weave -n kube-system | grep -i alloc
+	#** k logs weave-net-hdwjj weave -n kube-system | grep -i alloc
 INFO: 2020/07/05 09:32:41.259374 Command line options: map[conn-limit:200 datapath:datapath db-prefix:/weavedb/weave-net docker-api: expect-npc:true host-root:/host http-addr:127.0.0.1:6784 ipalloc-init:consensus=1 ipalloc-range:10.32.0.0/12 metrics-addr:0.0.0.0:6782 name:6a:d3:47:eb:80:2e nickname:master no-dns:true port:6783]
 
 
@@ -154,26 +163,34 @@ INFO: 2020/07/05 09:32:41.259374 Command line options: map[conn-limit:200 datapa
 
 	# cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep cluster-ip-range
 
-	# cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -i cluster-ip
+	#** cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -i cluster-ip
     - --service-cluster-ip-range=10.96.0.0/12
 
 
 4) What type of proxy is the kube-proxy configured to use?
 
-	# kubectl logs kube-proxy-ft6n7 -n kube-system 		<<<< check logs here
+	#** kubectl logs kube-proxy-ft6n7 -n kube-system 		<<<< check logs here
 
 
 
 
 -------------- lab 6 : Core DNS ------------------
 
+-** What is the IP of the CoreDNS server that should be configured on PODs to resolve services?
+	
+		-** kubectl get service -n kube-system and look for cluster IP value.
 
-- 		# cat /etc/coredns/Corefile
+
+- 		#** cat /etc/coredns/Corefile
 
 		- This core file is passed as a configmap object
 
 		# kubectl get configmap -n kube-system	
 
+-** What is the root domain/zone configured for this kubernetes cluster?
+
+	- kubectl describe configmap coredns -n kube-system 
+		and look for the entry after kubernetes
 
 - Kubelet service is responsible to inject the CoreDNS service IP into each Pod.
 
@@ -413,3 +430,10 @@ spec:
           serviceName: video-service
           servicePort: 8080
 ------------------------------------
+
+
+
+----------------------------------------- Main Points ----------------------------------------------------
+
+
+

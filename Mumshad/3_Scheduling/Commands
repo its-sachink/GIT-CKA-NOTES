@@ -9,7 +9,7 @@ spec:
     image: nginx
     ports:
       - containerPort: 8080
-  nodeName: node01		<<<< Allocate a pod to the node
+  nodeName: node01		<<<< Allocate a pod to the node ****
 ----------------------------
 
 
@@ -19,7 +19,7 @@ spec:
 1) Labels :
 ############
 
-# kubectl get pods --selector app=App1
+# kubectl get pods --selector app=App1 ****
 				
 				- Select the pods based on labels and selectors
 
@@ -35,7 +35,7 @@ spec:
 				- Select all the objects including pods, service, replicaset based on env=prod
 
 
-# k get pod --selector env=prod,bu=finance,tier=frontend
+# k get pod --selector env=prod,bu=finance,tier=frontend ****
 	
 				- Select a pod based on many selectors
 
@@ -84,8 +84,8 @@ spec:
 	status: {}
 
 
-# kubectl taint nodes master node-role.kubernetes.io/master:NoSchedule-
-node/master untainted
+# kubectl taint nodes master node-role.kubernetes.io/master:NoSchedule-   ****
+	node/master untainted
 
 			- Remove the taint of a node
 
@@ -109,6 +109,8 @@ node/master untainted
 
 		- Run deployment with 6 replicas
 
+		-**** check for node affinity in exam
+
 ------- definition to add affinity ----------
    spec:
       containers:
@@ -128,7 +130,7 @@ node/master untainted
 - Create a new deployment named 'red' with the NGINX image and 3 replicas, and ensure it gets placed on the master node only.
 Use the label - node-role.kubernetes.io/master - set on the master node.
 
-# k run red --image=nginx --replicas=3 --dry-run -o yaml > red.yaml
+# k run red --image=nginx --replicas=3 --dry-run -o yaml > red.yaml ****
 
 ------- definition to add to check only if label exists or not -------------
    spec:
@@ -152,7 +154,7 @@ Use the label - node-role.kubernetes.io/master - set on the master node.
 4) Resource requirements and Limits :
 ################################################
 
-	# k describe pod rabbit
+	# k describe pod rabbit | grep -i cpu -A4
 
 		- Identify the CPU requirement set on Pod.
 
@@ -176,9 +178,10 @@ Use the label - node-role.kubernetes.io/master - set on the master node.
 5) DaemonSet :
 ########################
 
-	- How to create a DeamonSet.
+	- How to create a DeamonSet. ****
 
-		1) First create a Deployment and redirect the output to yaml file.
+		1) First create a Deployment and redirect the output to yaml file. ****
+				-- remove unnecessary fields
 		2) Then edit the deployment and change the "kind: DaemonSet".
 
 	------------------------- Daemon Set -----------------------

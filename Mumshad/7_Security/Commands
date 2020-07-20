@@ -75,7 +75,7 @@ or you can also check in "cat /etc/kubernetes/manifests/kube-apiserver.yaml"
 
 	You are asked to investigate and fix the issue. Once you fix the issue wait for sometime for kubectl to respond. Check the logs of the ETCD container.
 
-		# docker ps -a | grep -i etcd 		<<<< check for expired container here
+		**#** docker ps -a | grep -i etcd 		<<<< check for expired container here
 
 		# docker logs -f expired_container
 
@@ -187,7 +187,7 @@ error: unable to read client-cert /etc/kubernetes/pki/users/dev-user/developer-u
 -------------- lab 4 : RBAC ------------------
 
 
-1) Inspect the environment and identify the authorization modes configured on the cluster.
+1) **Inspect the environment and identify the authorization modes configured on the cluster.
 
 	# k describe pod kube-apiserver-master -n kube-system | grep -i authorization
       --authorization-mode=Node,RBAC
@@ -441,7 +441,7 @@ roleRef:
 
 
 
-7) michelle's responsibilities are growing and now she will be responsible for storage as well. Create the required ClusterRoles and ClusterRoleBindings to allow her access to Storage.
+7)**** michelle's responsibilities are growing and now she will be responsible for storage as well. Create the required ClusterRoles and ClusterRoleBindings to allow her access to Storage.
 
 		ClusterRole: storage-admin
 		Resource: persistentvolumes
@@ -549,7 +549,7 @@ kubectl create secret docker-registry private-reg-cred \
 
 
 
---------------------------------- lab 7 : Security Contexts -----------------------------------------------
+--------------------------------- lab 7 : ****Security Contexts -----------------------------------------------
 
 2) Edit the pod 'ubuntu-sleeper' to run the sleep process with user ID 1010.
 	
@@ -590,7 +590,7 @@ kubectl create secret docker-registry private-reg-cred \
 	-----------------
 
 
-6) Update pod 'ubuntu-sleeper' to run as Root user and with the 'SYS_TIME' capability.
+6)** Update pod 'ubuntu-sleeper' to run as Root user and with the 'SYS_TIME' capability.
 		
 		Note: Only make the necessary changes. Do not modify the name of the pod.
 
@@ -602,12 +602,16 @@ kubectl create secret docker-registry private-reg-cred \
 	metadata:
 	  name: ubuntu-sleeper
 	spec:
+	  securityContext:
+	    runAsUser: 0 			<<<<
 	  containers:
-	  - name: ubuntu-sleeper
-	    image: ubuntu-sleeper
-	    securityContext:                   		<<<< Add capability
+	  - command:
+	    - sleep
+	    - "4800"
+	    image: ubuntu
+	    securityContext:		<<<<<
 	      capabilities:
-	        add: ["NET_ADMIN", "SYS_TIME"] 
+	        add: ["SYS_TIME"]
 	------------------------
 
 
@@ -634,7 +638,7 @@ kubectl create secret docker-registry private-reg-cred \
 
 
 
-10) Create a network policy to allow traffic from the 'Internal' application only to the 'payroll-service' and 'db-service'
+****10)**** Create a network policy to allow traffic from the 'Internal' application only to the 'payroll-service' and 'db-service'
 	Use the spec given on the right. You might want to enable ingress traffic to the pod to test your rules in the UI.
 
 	Policy Name: internal-policy

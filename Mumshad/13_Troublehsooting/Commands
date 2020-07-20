@@ -6,7 +6,7 @@
 1) Troubleshooting Test 1: A simple 2 tier application is deployed in the alpha namespace. It must display a green web page on success. Click on the app tab at the top of your terminal to view your application. It is currently failed. Troubleshoot and fix the issue.
 
 
-- Check the DB service name
+- Check the DB service name in the deployment of webappss
 
 - Check the target endpoint in the mysql service and compare it with the architecture.
 
@@ -19,6 +19,30 @@
 - Check the port exposed by service and the username of mysql
 
 
+--------------- Hints ------------
+- Check the object names(pod, service names) and make sure they match the ones given in the architecture diagram.
+
+- Check the labels of pod and defined in the service
+
+- Check the ports configured on the services. Check the target endpoint in the mysql service and compare it with the architecture.
+	# k describe svc svc-name
+
+	# k describe pod mysql -n epsilon  | grep -i port -A4
+
+	# k describe svc mysql-service -n epsilon | grep -i port -A4
+
+	# k describe pod mysql -n epsilon 	<<<< also check this
+
+- Check the environment variables configured on the web-app pod.
+
+	# k exec webapp-mysql-5fb9ccd54d-dz9nf -n delta -- env | grep -i db
+		DB_Host=mysql-service
+		DB_User=sql-user
+		DB_Password=paswrd 
+
+- Check port of cluster-ip SVC, username on web-app pod, password on mysql pod 
+
+
 
 ------------------------------- Lab 2 : Control Plane Failure ----------------------------------
 
@@ -27,9 +51,9 @@ Refer : https://kubernetes.io/docs/tasks/debug-application-cluster/debug-cluster
 
 - Check scheduler status
 
-	# kubectl describe pod kube-scheduler-master -n kube-system
+	#** kubectl describe pod kube-scheduler-master -n kube-system
 
-	# kubectl logs 
+	#** kubectl logs 
 
 	# ps aux | grep -i kube-scheduler
 
@@ -48,7 +72,7 @@ Refer : https://kubernetes.io/docs/tasks/debug-application-cluster/debug-cluster
 
 - Check how the mount points are mounted on kube-controller-manager pod
 		
-		- Check how the volume is configured
+		-** Check how the volume is configured
 
 
 
@@ -62,7 +86,7 @@ Refer : https://kubernetes.io/docs/tasks/debug-application-cluster/debug-cluster
 
 - 	# ps aux | grep -i kubelet
 	
-	# systemctl status kubelet
+	#** systemctl status kubelet
 
 	# systemctl restart kubelet
 
@@ -72,16 +96,16 @@ Refer : https://kubernetes.io/docs/tasks/debug-application-cluster/debug-cluster
 
 	# systemctl restart kubelet
 
-	# journalctl -u kubelet
+	#** journalctl -u kubelet
 
 
 	- configuration of kubelet
 
-		# cd /etc/systemd/system/kubelet.serviced/
+		#** cd /etc/systemd/system/kubelet.serviced/
 
-		# vim 10-kubeadm.conf
+		#** vim 10-kubeadm.conf
 
-		# vim /var/lib/kubelet/config.yaml
+		#** vim /var/lib/kubelet/config.yaml
 
 		# systemctl daemon-reload
 
@@ -91,7 +115,7 @@ Refer : https://kubernetes.io/docs/tasks/debug-application-cluster/debug-cluster
 
 	# journalctl -u kubelet
 
-	# kubectl cluster-info 		<<< on master node
+	#** kubectl cluster-info 		<<< on master node
 
 		- correct port is 6443
 
@@ -100,3 +124,50 @@ Refer : https://kubernetes.io/docs/tasks/debug-application-cluster/debug-cluster
 		# systemctl daemon reload
 
 		# systemctl restart kubelet
+
+
+
+
+
+------------------------------ Main points ------------------------------------
+
+
+--------------- Hints ------------
+- Check the object names(pod, service names) and make sure they match the ones given in the architecture diagram.
+
+- Check the labels of pod and defined in the service
+
+- Check the ports configured on the services. Check the target endpoint in the mysql service and compare it with the architecture.
+	# k describe svc svc-name
+
+	# k describe pod mysql -n epsilon  | grep -i port -A4
+
+	# k describe svc mysql-service -n epsilon | grep -i port -A4
+
+	# k describe pod mysql -n epsilon 	<<<< also check this
+
+- Check the environment variables configured on the web-app pod.
+
+	# k exec webapp-mysql-5fb9ccd54d-dz9nf -n delta -- env | grep -i db
+		DB_Host=mysql-service
+		DB_User=sql-user
+		DB_Password=paswrd 
+
+- Check port of cluster-ip SVC, username on web-app pod, password on mysql pod 
+-----------------------------------
+
+Refer : https://kubernetes.io/docs/tasks/debug-application-cluster/debug-cluster/
+
+
+	#** systemctl status kubelet
+	#** journalctl -u kubelet
+		#** cd /etc/systemd/system/kubelet.serviced/
+
+		#** vim 10-kubeadm.conf
+
+		#** vim /var/lib/kubelet/config.yaml
+	#** kubectl cluster-info 		<<< on master node
+
+		- correct port is 6443
+
+		# vim /etc/kubernetes/kubelet.conf

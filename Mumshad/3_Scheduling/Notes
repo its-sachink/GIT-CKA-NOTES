@@ -107,7 +107,7 @@ spec:
 	    image: data-processor
 	  nodeSelector:
 	    size: Large
-	------------------------ -------------
+	--------------------------------------
 
 	- What is our requirement is complex like place the pod on a Large or Medium node, or place is on a node other than smaller one
 	- In this case we will use Node Affinity

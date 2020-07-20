@@ -551,7 +551,7 @@
 
 	- Master node Ports and services
 
-		- kubectl
+		-** kubectl
 			- Kube-api 					: 6443
 			- kubelet 					: 10250 				<<<< Yes kubernetes is present on master node
 			- kube-scheduler 			: 10251
@@ -672,7 +672,7 @@
 			....)
 
 
-		- kubelet is responsible to create a container on each node, kubelet looks at the CNI configuration passed as a CLI argument
+		-** kubelet is responsible to create a container on each node, kubelet looks at the CNI configuration passed as a CLI argument
 
 			# kubelet \
 			--cni-conf-dir=/etc/cni/net.d \
@@ -683,7 +683,7 @@
 
 	- CNI defines the responsibilities of container runtime(kubernetes).
 
-	- CNI plugin is configured in the kubelet service of each cluster.
+	-** CNI plugin is configured in the kubelet service of each cluster.
 
 	------------------------- kubelet.service -------------------------------
 	ExecStart=/ust/local/bin/kubelet \\
@@ -740,11 +740,11 @@
 	- Where is the information stored and managed.
 
 
-	- CNI says it is the responsibility of CNI plugin to manage/assign the IP of Pods.
+	-** CNI says it is the responsibility of CNI plugin to manage/assign the IP of Pods.
 	- Kubernetes is not concerned about this.
 
 
-	- CNI comes with 2 build-in plugins which manages the number of IP addresses assigned to each Node locally on that Node.
+	-** CNI comes with 2 build-in plugins which manages the number of IP addresses assigned to each Node locally on that Node.
 			- DHCP
 			- host-local
 
@@ -755,7 +755,7 @@
 			- It is still our responsibility to invoke that plugin in our script
 
 
-			- CNI maintains a configuration file in which we can specify which plugin to use
+			-** CNI maintains a configuration file in which we can specify which plugin to use
 
 			# cat /etc/cni/net.d/net-script.conf 			<<<<
 			{
@@ -796,18 +796,18 @@
 
 
 
-	- kubelet : It watches the kube-apiserver and creates/destroys the Pods accordingly on the nodes. Also invokes the CNI plugin to configure network on the node.
+	-** kubelet : It watches the kube-apiserver and creates/destroys the Pods accordingly on the nodes. Also invokes the CNI plugin to configure network on the node.
 
 
-	- kubeproxy : It watches the kube-apiserver and creates the services.
+	-** kubeproxy : It watches the kube-apiserver and creates the services.
 
 		- Services are cluster-wide concepts they exist across the cluster where as Pod's are with specific to a single Node only.
 
 		- Services don't have namespaces nor a interfaces unlike Pods. They just a virtual IP addresses.
 
 
-		- When we create services it is assigned a IP addresses from predefined range. 
-		- kubeproxy running on each nodes get that IP addresses and creates the forwarding rules on each node.
+		-** When we create services it is assigned a IP addresses from predefined range. 
+		-** kubeproxy running on each nodes get that IP addresses and creates the forwarding rules on each node.
 			- Saying any IP coming to this services IP address to go to the Pod.
 			- It also handles the Port's accordingly.
 			- It is a IP and Port combination.
@@ -819,7 +819,7 @@
 			- ipvs
 
 
-		- When kubernetes creates a service it is assigned a IP address, the range of the IP address is defined as follows
+		-** When kubernetes creates a service it is assigned a IP address, the range of the IP address is defined as follows
 
 			# kube-api-server  --service-cluster-ip-range ipNet (Default 10.0.0.0/24)
 
@@ -839,7 +839,7 @@
 
 		- Similarly for Node Port service, kubeproxy creates a iptables rule to forward all the traffic coming on Node to the backend Pods
 
-		- We can also see these entries in
+		-** We can also see these entries in
 
 			# cat /var/log/kube-proxy.log
 
@@ -936,14 +936,14 @@
 			reload
 		}
 
-		- This core file is passed as a configmap object
+		-** This core file is passed as a configmap object
 
 				# kubectl get configmap -n kube-system
 
 		- The service to access this DNS server is named as "kube-dns" by default
 
 
-		- Kubelet service is responsible to inject the CoreDNS service IP into each Pod.
+		-** Kubelet service is responsible to inject the CoreDNS service IP into each Pod.
 
 			----------------------------------------
 			# cat /var/lib/kubelet/config.yaml

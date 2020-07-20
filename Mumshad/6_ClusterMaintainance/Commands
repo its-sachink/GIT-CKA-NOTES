@@ -15,9 +15,9 @@
 
 	- Empty the node "node01" of all applications and mark it unschedulable.
 	
-		# kubectl drain node01 --ignore-daemonsets
+		#** kubectl drain node01 --ignore-daemonsets
 
-		# kubectl frain node03 --ignore-daemonsets --force
+		# kubectl drain node03 --ignore-daemonsets --force
 
 	- Configure the node "node01" to be schedulable again.
 
@@ -66,22 +66,22 @@
 # k drain/cordon/uncordon master/node01
 ---------- master ------------
 kubeadm upgrade plan                  <<<< Always check the cluster version and kubeadm version here
-apt-get install kubeadm=1.18.0-00
+**apt-get install kubeadm=1.18.0-00
 
-kubeadm upgrade plan v1.18.0
-kubeadm upgrade apply v1.18.0
+**kubeadm upgrade plan v1.18.0
+**kubeadm upgrade apply v1.18.0
 
 apt-mark hold kubeadm
 
-apt-get install kubelet=1.18.0-00
-systemctl restart kubelet
+**apt-get install kubelet=1.18.0-00
+**systemctl restart kubelet
 
 ---------- worker ------------
-apt-get install kubeadm=1.18.0-00
-kubeadm upgrade node
+**apt-get install kubeadm=1.18.0-00
+**kubeadm upgrade node
 
-apt-get install kubelet=1.18.0-00
-systemctl restart kubelet
+**apt-get install kubelet=1.18.0-00
+**systemctl restart kubelet
 ------------------------------
 
 
@@ -99,7 +99,7 @@ systemctl restart kubelet
 
 	- At what address do you reach the ETCD cluster from your master node? What is the address of etcd-cluster
 
-		# kubectl describe pod etcd-master -n kube-system | grep -i listen
+		#** kubectl describe pod etcd-master -n kube-system | grep -i listen
       --listen-client-urls=https://127.0.0.1:2379,https://172.17.0.48:2379		<<<<< Where ETCD listen
       --listen-metrics-urls=http://127.0.0.1:2381
       --listen-peer-urls=https://172.17.0.48:2380
@@ -157,5 +157,28 @@ systemctl restart kubelet
 
 
     - Then you need to edit the '/etc/kubernetes/manifests/etcd.yaml' file accordingly
+    	--data-dir=/var/lib/etcd-from-backup
+    	--initial-cluster-token=etcd-cluster-1
+
+    	- also the hostPath mounts
+
+    ------------------------
+     volumeMounts:
+    - mountPath: /var/lib/etcd-from-backup
+      name: etcd-data
+    - mountPath: /etc/kubernetes/pki/etcd
+      name: etcd-certs
+  hostNetwork: true
+  priorityClassName: system-cluster-critical
+  volumes:
+  - hostPath:
+      path: /var/lib/etcd-from-backup
+      type: DirectoryOrCreate
+    name: etcd-data
+  - hostPath:
+      path: /etc/kubernetes/pki/etcd
+      type: DirectoryOrCreate
+    name: etcd-certs
+    ------------------------
 
     https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/practice-questions-answers/cluster-maintenance/backup-etcd/etcd-backup-and-restore.md
