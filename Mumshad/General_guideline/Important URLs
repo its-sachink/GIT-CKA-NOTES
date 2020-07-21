@@ -32,4 +32,78 @@ https://levelup.gitconnected.com/kubernetes-cka-example-questions-practical-chal
 
 https://medium.com/@sensri108/practice-examples-dumps-tips-for-cka-ckad-certified-kubernetes-administrator-exam-by-cncf-4826233ccc27
 
+------------------------------
+
+https://stackoverflow.com/questions/2514445/turning-off-auto-indent-when-pasting-text-into-vim
+
+: set paste 	<<<< after this paste your code
+
+: set nopaste 	<<<< This enable the autointending again
+
+
+
+
 https://medium.com/faun/be-fast-with-kubectl-1-18-ckad-cka-31be00acc443
+
+# .vimrc
+set tabstop=2
+set expandtab
+set shiftwidth=2
+
+	- mark multiple lines using Shift v and the up/down keys
+	- indent the marked lines press > or < , then . to repeat the action
+
+
+# basic vim stuff
+Mark lines: Esc+V (then arrow keys)
+Copy marked lines: y
+Cut marked lines: d
+Past lines: p or P
+
+
+
+https://songhuiming.github.io/pages/2016/07/31/replace-tab-by-space-or-replace-spaces-by-tab-in-linux/
+
+1) 
+
+" On pressing tab, insert 2 spaces
+set expandtab
+	or
+set et|retab
+
+
+" show existing tab with 2 spaces width
+set tabstop=2
+
+
+" when indenting with '>', use 2 spaces width
+set shiftwidth=2
+
+source ~/.vimrc
+
+
+2) replace tab to spaces
+:set et|retab
+
+3) 
+
+
+
+
+
+https://vim.fandom.com/wiki/Converting_tabs_to_spaces
+https://vim.fandom.com/wiki/Super_retab
+
+
+:set expandtab      -   To insert space characters whenever the tab key is pressed
+
+:set tabstop=2      -   the number of space characters that will be inserted when the tab key is pressed
+
+:retab              -   To change all the existing tab characters to match the current tab settings
+
+:set shiftwidth=2   -   The number of space characters inserted for indentation
+
+:set tabstop=2 shiftwidth=2 expandtab   -   Put all this as a single liner
+:set retab
+
+:set et|retab       -   You can set the 'expandtab' (abbreviated to 'et') option so each tab that you type is converted to an equivalent number of spaces. And you can use the :retab command to convert all existing tabs to spaces. You can do both in one command:

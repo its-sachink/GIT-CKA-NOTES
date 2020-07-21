@@ -9,7 +9,30 @@
 
 		- kubectl run : will only/always create a POD hence forth and can only be used to create a POD hence forth only.
 
+--------------------------------------------------
+:set expandtab      -   To insert space characters whenever the tab key is pressed
 
+:set tabstop=2      -   the number of space characters that will be inserted when the tab key is pressed
+
+:retab              -   To change all the existing tab characters to match the current tab settings
+
+:set shiftwidth=2   -   The number of space characters inserted for indentation
+
+:set tabstop=2 shiftwidth=2 expandtab   -   Put all this as a single liner
+:set retab
+
+:set et|retab       -   You can set the 'expandtab' (abbreviated to 'et') option so each tab that you type is converted to an equivalent number of spaces. And you can use the :retab command to convert all existing tabs to spaces. You can do both in one command:
+
+
+    - mark multiple lines using Shift v and the up/down keys
+    - indent the marked lines press > or < , then . to repeat the action
+
+
+# basic vim stuff
+Mark lines: Esc+V (then arrow keys)
+Copy marked lines: y
+Cut marked lines: d
+Past lines: p or P
 ------------ some more if required ---------------
 alias kn=”kubectl get nodes -o wide”
 alias kp=”kubectl get pods -o wide”
