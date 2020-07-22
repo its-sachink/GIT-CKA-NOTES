@@ -94,15 +94,15 @@ Master Node : Manage, Plan, Schedule, Monitor Nodes. Master node does all of thi
 
 	- How to view the kubeapi server options like what is the address of etcd service etc.
 
-		- If the cluster is setup using kubeadm then
+		-**** If the cluster is setup using kubeadm then
 
 			# /etc/kubernetes/manifests/kube-apiserver.yaml
 
-		- Nob kubeadmin setup
+		-**** Nob kubeadmin setup
 
 			# /etc/systemd/system/kube-apiserver.service
 
-		- Also we can run following on master node
+		-**** Also we can run following on master node
 
 			# ps aux | grep -i kube-apiserver
 
@@ -110,12 +110,12 @@ Master Node : Manage, Plan, Schedule, Monitor Nodes. Master node does all of thi
 
 - Kubernetes Controller manager
 
-	- Controller : It continuously monitors the state of various components in the kubernetes system and worked towrds bringing the whole system to the desired state.
+	-**** Controller : It continuously monitors the state of various components in the kubernetes system and worked towrds bringing the whole system to the desired state.
 
 		- Node controller : monitors various Node every 5 seconds, waits for 40s to mark it as down
 		- Replicaion controller : managed the pods replication
 
-	- How to view the kubecontroller options
+	-**** How to view the kubecontroller options
 	
 		# cat /etc/kubernetes/manifests/kube-controller-manager.yaml 	- kubeadm setup
 
@@ -144,7 +144,7 @@ Master Node : Manage, Plan, Schedule, Monitor Nodes. Master node does all of thi
 		- It registers the node with the kubernetes cluster
 		- It request docker to pull the image and run the instance and monitor the status on timely basis
 
-	- Kubeadm does not deploy kubelet
+	-**** Kubeadm does not deploy kubelet
 		- You have to manually install the kubelet on the worker nodes
 
 		# ps aux | grep -i Kubelet        				- for checking the options of a running kubelet process
@@ -155,13 +155,13 @@ Master Node : Manage, Plan, Schedule, Monitor Nodes. Master node does all of thi
 
 	- Every pod can communicate to everyother pods in a kubernetes cluster using networking solution provided by kubeproxy.
 
-	- Kubeproxy is a process that run on each node in k8 cluster, its job is to look for new services and everytime a new service is created it creates the appropriate rules on each nodes to forward traffic to those services to the backend pods
+	-**** Kubeproxy is a process that run on each node in k8 cluster, its job is to look for new services and everytime a new service is created it creates the appropriate rules on each nodes to forward traffic to those services to the backend pods
 
 	- It creates a IP tables run to manage all these things
 
 	- You can install kubeproxy either manually
 
-	- Or a kubeadm also deploy it on each nodes, it is deployed as a Daemon on each nodes.
+	-**** Or a kubeadm also deploy it on each nodes, it is deployed as a Daemon on each nodes.
 
 
 - PODs

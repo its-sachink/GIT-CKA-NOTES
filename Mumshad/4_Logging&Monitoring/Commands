@@ -18,3 +18,17 @@
 
 	# kubectl top node
 	# kubectl top pod
+
+
+	- Managing Application logs.
+
+		- Logging docker running on kubernetes.
+
+			- If a pod contains a single docker.
+
+				# kubectl logs -f event-simulator-pod
+
+
+			- If a pod contains multiple docker containers.
+
+				#kubectl logs -f event-simulator-pod  pod-name-1

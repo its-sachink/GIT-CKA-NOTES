@@ -18,6 +18,7 @@
 
 :set shiftwidth=2   -   The number of space characters inserted for indentation
 
+---
 :set tabstop=2 shiftwidth=2 expandtab   -   Put all this as a single liner
 :set retab
 
@@ -39,10 +40,9 @@ alias kp=”kubectl get pods -o wide”
 alias kd=”kubectl get deployment -o wide”
 alias ks=”kubectl get svc -o wide”
 --------------------------------------------------
-alias kdp=”kubectl describe pod”
-alias kdd=”kubectl describe deployment”
-alias kds=”kubectl describe service”
-alias kdn=”kubectl describe node”
+alias kdd="kubectl describe"
+
+alias kgt="kubectl get"
 --------------------------------------------------
 
 # since 1.18
