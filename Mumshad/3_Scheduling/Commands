@@ -97,7 +97,7 @@ spec:
 ################################################
 
 
-# kubectl label node node01 color=blue
+# kubectl label node node01 color=blue 	****
 	
 		- apply a label to the running node
 
@@ -182,7 +182,7 @@ Use the label - node-role.kubernetes.io/master - set on the master node.
 
 		1) First create a Deployment and redirect the output to yaml file. ****
 				-- remove unnecessary fields
-		2) Then edit the deployment and change the "kind: DaemonSet".
+		2) Then edit the deployment and change the "kind: DaemonSet". Remove unrequired things.
 
 	------------------------- Daemon Set -----------------------
 	apiVersion: apps/v1
@@ -312,7 +312,7 @@ Use the label - node-role.kubernetes.io/master - set on the master node.
 		    - --kubeconfig=/etc/kubernetes/scheduler.conf
     		- --leader-elect=false
     		- --port=10282
-		    - --scheduler-name=my-scheduler          <<<<
+		    - --scheduler-name=my-scheduler          <<<< ****
 		    - --secure-port=0
 		    image: k8s.gcr.io/kube-scheduler:v1.16.0
 		    imagePullPolicy: IfNotPresent
@@ -334,5 +334,10 @@ Use the label - node-role.kubernetes.io/master - set on the master node.
 	  containers:
 	  -  image: nginx
 	     name: nginx
-	  schedulerName: my-scheduler
+	  schedulerName: my-scheduler ****
 	------------------------------------------------
+
+
+
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ Final Short Nodes $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$

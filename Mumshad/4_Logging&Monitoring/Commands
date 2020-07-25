@@ -31,4 +31,4 @@
 
 			- If a pod contains multiple docker containers.
 
-				#kubectl logs -f event-simulator-pod  pod-name-1
+				#kubectl logs -f event-simulator-pod  pod-name-1 	****

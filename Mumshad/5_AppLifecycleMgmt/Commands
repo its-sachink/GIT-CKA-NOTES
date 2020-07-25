@@ -14,7 +14,7 @@
 	    matchLabels:
 	      name: webapp
 	  strategy:
-	    rollingUpdate:                      <<<< Need to delete below 3 lines and change "type"
+	    rollingUpdate:                      <<<< Need to delete below 3 lines and change "type" ****
 	      maxSurge: 25%
 	      maxUnavailable: 25%
 	    type: RollingUpdate
@@ -99,7 +99,7 @@
 	CMD ["--color", "red"]
 	------------------------------------------------------
 
-	---------------- webapp-color-pod-2.yaml --------------
+	---------------- webapp-color-pod-2.yaml -------------- ******
 	apiVersion: v1
 	kind: Pod
 	metadata:
@@ -110,7 +110,7 @@
 	  containers:
 	  - name: simple-webapp
 	    image: kodekloud/webapp-color
-	    command: ["python", "app.py"]
+	    command: ["python", "app.py"]     ****
 	    args: ["--color", "pink"]
 	-------------------------------------------------------
 
@@ -131,7 +131,7 @@
 	  containers:
 	  - name: simple-webapp
 	    image: kodekloud/webapp-color
-	    args: ["--color", "green"]
+	    args: ["--color", "green"] 					****
     -------------------------------------------------------
 
 
@@ -142,7 +142,7 @@
 	------------------------------------------------------
 	spec:
 	  containers:
-	  - env:
+	  - env: 										****
 	    - name: APP_COLOR
 	      value: green
 	    image: kodekloud/webapp-color
@@ -165,7 +165,7 @@
 	----------------------------------------
 	 spec:
 	    containers:
-	    - envFrom:
+	    - envFrom: 					**** search "envFrom"
 	        - configMapRef:
 	            name: webapp-configmap
 	      image: kodekloud/webapp-color
@@ -221,7 +221,7 @@
 		  - image: kodekloud/simple-webapp-mysql
 		    imagePullPolicy: Always
 		    name: webapp
-		    envFrom:
+		    envFrom: 						****
 		      - secretRef:					<<<<
 		          name: app-secret
 		--------------------------------------------------
@@ -343,3 +343,8 @@
 		  dnsPolicy: ClusterFirst
 		  enableServiceLinks: true
 	----------------------------------------------------------
+
+
+
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ Final Short Nodes $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
