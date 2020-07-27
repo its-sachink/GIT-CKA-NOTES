@@ -5,6 +5,8 @@
 
 - Need to check regarding scale for deployments
 
+Explore the --record option while creating the deployment. Use kubectl edit or kubectl set image to upgrade the version.
+
 3) --------------------------------------------- Scheduling : ------------------------------------------------------
 
 
