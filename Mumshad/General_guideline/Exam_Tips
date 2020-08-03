@@ -91,4 +91,28 @@ alias kgt="kubectl get"
 
 
 
+---------------------------------
 
+alias k="kubectl"
+
+alias kn="kubectl get nodes -o wide"
+
+alias kp="kubectl get pods -o wide"
+
+alias kd="kubectl get deployments -o wide"
+
+alias ks="kubectl get svc -o wide"
+
+alias kgt="kubectl get"
+
+alias kds="kubectl describe"
+
+export do="--dry-run=client -o yaml"
+
+# apt install bash-completion
+source <(kubectl completion bash) 
+echo "source <(kubectl completion bash)" >> ~/.bashrc
+
+:set tabstop=2 shiftwidth=2
+
+:set et|retab

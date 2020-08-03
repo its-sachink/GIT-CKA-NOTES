@@ -80,9 +80,13 @@ kubectl cluster-info --kubeconfig /root/admin.kubeconfig
 	Next upgrade the deployment to version 1.17 using rolling update. Make sure that the version upgrade is recorded in the resource annotation.
 
 ------------------------------------------------
-# kubectl create deployment  nginx-deploy --image=nginx:1.16
+# kubectl create deployment  nginx-deploy --image=nginx:1.16 --record
 
-# kubectl set image deployment/nginx-deploy nginx=nginx:1.17 --record
+# k rollout history deployment nginx-deploy 
+
+# kubectl set image deployment/nginx-deploy nginx-deploy=nginx:1.17 --record
+
+# k rollout history deployment nginx-deploy 
 ------------------------------------------------
 
 - search "--record"

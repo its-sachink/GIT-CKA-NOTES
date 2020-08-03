@@ -95,18 +95,19 @@ spec:
   storageClassName: slow
 ------------------
 
-- Enter the details of volume in the yaml file
+- Enter the details of volume in the yaml file, use my-pvc
 
 
 
 5) Create a new deployment called nginx-deploy, with image nginx:1.16 and 1 replica. Record the version. Next upgrade the deployment to version 1.17 using rolling update. Make sure that the version upgrade is recorded in the resource annotation.
 
+
 ---------
-# k create deployment nginx-deploy --image=nginx:1.16 --replicas=1 --record
+# k create deployment nginx-deploy --image=nginx:1.16
 
 # k rollout history deployment nginx-deploy 
 
-# k set image deployment/nginx-deploy nginx-deploy=nginx:1.17 --record
+# k set image deployment/nginx-deploy nginx=nginx:1.17 --record
 
 # k rollout history deployment nginx-deploy
 ---------
@@ -164,6 +165,35 @@ EOF
 
 # k run test-nslookup --image=busybox:1.28 --rm --it -- nslookup nginx-resolver-service > /root/nginx.svc
 # k run test-nslookup --image=busybox:1.28 --rm --it -- nslookup 10-32-0-5.default.pod  > /root/nginx.pod
+
+-------------
+nginx-resolver                 1/1     Running            0          18m     10.244.1.8    node01   <none>           <none>
+redis-storage                  1/1     Running            0          44m     10.244.1.3    node01   <none>           <none>
+sachin-test                    0/1     Completed          5          3m5s    10.244.1.13   node01   <none>           <none>
+sachin-test1                   0/1     CrashLoopBackOff   3          59s     10.244.1.14   node01   <none>           <none>
+super-user-pod                 1/1     Running            0          40m     10.244.1.4    node01   <none>           <none>
+test-nslookup                  0/1     CrashLoopBackOff   7          13m     10.244.1.10   node01   <none>           <none>
+test-nslookup1                 0/1     CrashLoopBackOff   7          10m     10.244.1.11   node01   <none>           <none>
+test-svc                       0/1     Completed          8          15m     10.244.1.9    node01   <none>           <none>
+use-pv                         1/1     Running            0          29m     10.244.1.5    node01   <none>           <none>
+
+master $ k logs -f sachin-test1
+Server:    10.96.0.10
+Address 1: 10.96.0.10 kube-dns.kube-system.svc.cluster.local
+
+Name:      nginx-resolver
+Address 1: 10.109.60.189 nginx-resolver.default.svc.cluster.local
+master $ k run sachin-test1 --image=busybox:1.28 --rm -it -- nslookup 10-244-1-8.default.pod > output.txt
+Error from server (AlreadyExists): pods "sachin-test1" already exists
+master $ k run sachin-test2 --image=busybox:1.28 --rm -it -- nslookup 10-244-1-8.default.pod > output.txt
+
+^Cmaster $ cat output.txt
+master $ k logs -f sachin-test2
+Server:    10.96.0.10
+Address 1: 10.96.0.10 kube-dns.kube-system.svc.cluster.local
+
+Name:      10-244-1-8.default.pod
+Address 1: 10.244.1.8 10-244-1-8.nginx-resolver.default.svc.cluster.local
 
 
 

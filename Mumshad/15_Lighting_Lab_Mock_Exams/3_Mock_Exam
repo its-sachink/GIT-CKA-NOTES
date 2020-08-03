@@ -1,4 +1,4 @@
-################### Mock Exam -3 #################
+################### Mock Exam -3 ################# -- Done
 
 1) Create a new service account with the name "pvviewer". 
 
@@ -118,8 +118,7 @@ Important: Don't delete any current objects deployed.
 - check the labels first
 - check connectivity using busybox
 
-	# kubectl run test-np --image=busybox:1.28 -- sh
-	/ # nc -z -v -w 2 np-test-service 80
+  # k run test-np --image=busybox:1.28 --rm -it -- nc -zv -w 2 np-test-service 80
 
 
 	# kubectl get netpol
@@ -145,8 +144,7 @@ Important: Don't delete any current objects deployed.
 	      port: 80
 	---------------------
 
-	# kubectl run test-np --image=busybox:1.28 -- sh
-	/ # nc -z -v -w 2 np-test-service 80	
+  # k run test-np --image=busybox:1.28 --rm -it -- nc -zv -w 2 np-test-service 80
 
 
 

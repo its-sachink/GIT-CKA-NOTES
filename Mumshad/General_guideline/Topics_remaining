@@ -15,3 +15,5 @@
 kubectl get node -o json | grep -B40 -A20 "osImage"
 
 kubectl run <pod name> --image=busybox:1.28 --rm -it -- nslookup <service name>
+
+-- kubeadm init installation
