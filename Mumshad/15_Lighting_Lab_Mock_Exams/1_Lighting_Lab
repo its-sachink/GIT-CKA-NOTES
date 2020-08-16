@@ -149,7 +149,7 @@ etcdctl \
 
 The container should mount a read-only secret volume called secret-volume at the path /etc/secret-volume. The secret being mounted has already been created for you and is called dotfile-secret.
 
------------------------------------------------------
+----------------------------------------------------- **********************
 apiVersion: v1
 kind: Pod
 metadata:
@@ -176,3 +176,29 @@ spec:
       mountPath: "/etc/secret-volume"
 -----------------------------------------------------
 
+
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ Points to note down $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+--sort-by
+
+storageClassName: slow   <<<< ony if pv is slow
+
+
+snapshot status /opt/etcd-backup.db -w table
+
+----- pass seperately
+  containers:
+  - command:        <<<<
+    - sleep
+    args:           <<<<
+    - "4800"
+    image: busybox
+    name: secret-admin
+-------
+
+
+  containers:
+  - command: ["sleep","4800"]
+    image: busybox
+    name: secret-admin

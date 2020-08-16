@@ -166,3 +166,25 @@
 
 
 $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ Final Short Nodes $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+-**** Scale the ReplicaSet to 5 PODs
+	# k scale rs new-replica-set --replicas=5
+	
+
+- 	- To switch to dev namespace permanently
+
+		# kubectl config set-context $(kubectl config current-context) --namespace=dev
+
+		where,
+				$ k config current-context
+				kubernetes-admin@kubernetes
+				
+				
+-**** Deploy a redis pod using the redis:alpine image with the labels set to tier=db.
+
+	# k run redis --image=redis:alpine -l tier=db				
+	
+	
+-**** Create a new pod called custom-nginx using the nginx image and expose it on container port 8080
+
+		# kubectl run custom-nginx --image=nginx --port=8080

@@ -19,7 +19,7 @@
       --requestheader-client-ca-file=/etc/kubernetes/pki/front-proxy-ca.crt
       --tls-cert-file=/etc/kubernetes/pki/apiserver.crt 								<<<< 1
 
-# k describe pod kube-apiserver-master -n kube-system | grep -i key
+# k describe pod kube-apiserver-master -n kube-system | grep -i key ****
       --etcd-keyfile=/etc/kubernetes/pki/apiserver-etcd-client.key
       --kubelet-client-key=/etc/kubernetes/pki/apiserver-kubelet-client.key 			<<<< 3
       --proxy-client-key-file=/etc/kubernetes/pki/front-proxy-client.key
@@ -48,7 +48,7 @@ or you can also check in "cat /etc/kubernetes/manifests/kube-apiserver.yaml"
       --requestheader-client-ca-file=/etc/kubernetes/pki/front-proxy-ca.crt
       --tls-cert-file=/etc/kubernetes/pki/apiserver.crt
 
-    # openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text | grep -i cn -A4
+    # openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text | grep -i cn -A4 ****
         Issuer: CN = kubernetes 						<<<<
         Validity
             Not Before: Jul  6 08:15:15 2020 GMT
@@ -71,6 +71,7 @@ or you can also check in "cat /etc/kubernetes/manifests/kube-apiserver.yaml"
 # openssl x509 -in /etc/kubernetes/pki/etcd/server.crt -text | grep -i cn -A4
 
 
+*****
 12) Kubectl suddenly stops responding to your commands. Check it out! Someone recently modified the /etc/kubernetes/manifests/etcd.yaml file
 
 	You are asked to investigate and fix the issue. Once you fix the issue wait for sometime for kubectl to respond. Check the logs of the ETCD container.
@@ -163,12 +164,14 @@ csr-r9zmt   9m48s   system:node:master        Approved,Issued
 8) How many contexts are configured in the 'my-kube-config' file?
 
 	# kubectl config --kubeconfig=/root/my-kube-config view
-
+	#  k config view --kubeconfig=/root/my-kube-config ******
 
 
 12) I would like to use the dev-user to access test-cluster-1. Set the current context to the right one so I can do that.
 
 	# kubectl config --kubeconfig=/root/my-kube-config use-context research
+
+	# k config use-context research --kubeconfig=/root/my-kube-config ******
 
 
 13) We don't want to have to specify the kubeconfig file option on each command. Make the my-kube-config file the default kubeconfig.
@@ -561,7 +564,7 @@ kubectl create secret docker-registry private-reg-cred \
 
 	-- Set a security context to run as user 1010.
 
-	-------------------------------
+	------------------------------- ****
 	apiVersion: v1
 	kind: Pod
 	metadata:
@@ -665,8 +668,8 @@ kubectl create secret docker-registry private-reg-cred \
 	      name: internal
 	  policyTypes:
 	  - Egress
-	  egress:
-	  - to:
+	  egress: 
+	  - to:                             ***** more than 2 -to allowed
 	    - podSelector:
 	        matchLabels:
 	          name: payroll
@@ -681,3 +684,64 @@ kubectl create secret docker-registry private-reg-cred \
 	    - protocol: TCP
 	      port: 3306 
 	------------------------------------------
+
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ Summary Points $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+# k describe pod kube-apiserver-master -n kube-system | grep -i key ****
+      --etcd-keyfile=/etc/kubernetes/pki/apiserver-etcd-client.key
+      --kubelet-client-key=/etc/kubernetes/pki/apiserver-kubelet-client.key 			<<<< 3
+	  
+# openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text | grep -i cn -A4 ****
+        Issuer: CN = kubernetes 						<<<<
+        Validity
+            Not Before: Jul  6 08:15:15 2020 GMT	  
+			
+- Kubectl suddenly stops responding to your commands. Check it out! Someone recently modified the /etc/kubernetes/manifests/etcd.yaml file.
+
+		**#** docker ps -a | grep -i etcd 		<<<< check for expired container here
+
+		# docker logs -f expired_container
+		
+		
+	# k config view --kubeconfig=/root/my-kube-config
+	# k config use-context research --kubeconfig=/root/my-kube-config
+	# kubectl config current-context
+	
+-----------------
+	spec:
+	  ##securityContext:
+	    ##runAsUser: 1010 					<<<< Does not work
+	  containers:
+	  - name: sec-ctx-demo-2
+	    image: ubuntu-sleeper
+	    securityContext:
+	      runAsUser: 1010 					<<<< This works
+	      allowPrivilegeEscalation: false
+-------------------------------
+
+- More than 2 "-to" allowed
+
+-------------------------------
+	spec:
+	  podSelector:
+	    matchLabels:
+	      name: internal
+	  policyTypes:
+	  - Egress
+	  egress: 
+	  - to:                             ***** more than 2 -to allowed
+	    - podSelector:
+	        matchLabels:
+	          name: payroll
+	    ports:
+	    - protocol: TCP
+	      port: 8080
+	  - to:
+	    - podSelector:
+	        matchLabels:
+	          name: mysql
+	    ports:
+	    - protocol: TCP
+	      port: 3306 
+-------------------------------

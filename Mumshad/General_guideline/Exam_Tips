@@ -116,3 +116,6 @@ echo "source <(kubectl completion bash)" >> ~/.bashrc
 :set tabstop=2 shiftwidth=2
 
 :set et|retab
+
+
+Ctrl + Shift + B == Auto Hide Bookmark Bar

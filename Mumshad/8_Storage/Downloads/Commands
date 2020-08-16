@@ -1,6 +1,6 @@
 ################ Commands ##################
 
-2) The application stores logs at location /log/app.log. View the logs.
+2) The application stores logs at location /log/app.log. View the logs. ****
 
 	# kubectl exec webapp -- tail -f /log/app.log
 

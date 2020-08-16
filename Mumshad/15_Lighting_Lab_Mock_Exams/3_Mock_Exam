@@ -219,3 +219,18 @@ Use appropriate labels and create all the required objects if it does not exist 
 
 # kubectl get deployments
 # kubectl get pods
+
+
+
+
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ points to remember $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+
+# kubectl create serviceaccount pvviewer
+
+# kubectl create clusterrole pvviewer-role --resource=persistentvolumes --verb=list
+
+# kubectl create clusterrolebinding pvviewer-role-binding --clusterrole=pvviewer-role --serviceaccount=default:pvviewer
+
+# k run test-np --image=busybox:1.28 --rm -it -- nc -zv -w 2 np-test-service 80

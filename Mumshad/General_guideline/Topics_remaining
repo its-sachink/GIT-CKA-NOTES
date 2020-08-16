@@ -16,4 +16,26 @@ kubectl get node -o json | grep -B40 -A20 "osImage"
 
 kubectl run <pod name> --image=busybox:1.28 --rm -it -- nslookup <service name>
 
--- kubeadm init installation
+-- kubeadm init installation "kubeadm init --help"
+
+Building and Configuring a Kubernetes Cluster with kubeadm
+
+-- kubectl explain pod.spec https://blog.heptio.com/kubectl-explain-heptioprotip-ee883992a243
+
+-- https://v1-16.docs.kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/
+
+-- set-context config 
+
+----------
+
+-- this command is only creating args array - kubectl run data-pod --image=busybox --restart=Never -o yaml --dry-run -- /bin/sh -c 'sleep 3600'.
+
+-- kubectl run data-pod --image=busybox --command sleep 4800 -dry-run -o yaml
+
+kubectl run test-nslookup --image=busybox:1.28 --rm -it --command -- "sh" "-c" "sleep 10 && nslookup nginx-resolver-service"
+
+kubectl run test --rm --restart=Never -it --image=busybox:1.28 -- nslookup nginx-resolver-service > /root/nginx.svc
+
+k run test-np --image=busybox:1.28 --rm --restart=Never -it -- nc -zv -w 2 np-test-service 80
+
+-------

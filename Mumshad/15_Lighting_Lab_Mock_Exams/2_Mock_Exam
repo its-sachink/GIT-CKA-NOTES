@@ -146,7 +146,7 @@ EOF
 
 - Create a role "developer" with appropriate role
 
-# k create role developer --resource=pods --verb=create,list,get,update,delete  --namespace=development
+# k create role developer --resource=pods --verb=create,list,get,update,delete  --namespace=development  ****
 # k describe role developer
 
 # k create rolebinding developer-role-binding --role=developer --user=john --namespace=development
@@ -164,6 +164,9 @@ EOF
 # k expose pod nginx-resolver --name=nginx-resolver-service --port=80 --target-port=80
 
 # k run test-nslookup --image=busybox:1.28 --rm --it -- nslookup nginx-resolver-service > /root/nginx.svc
+#** k run test-1 --image=busybox:1.28 --restart=Never --rm -it -- nslookup nginx-resolver-service
+
+
 # k run test-nslookup --image=busybox:1.28 --rm --it -- nslookup 10-32-0-5.default.pod  > /root/nginx.pod
 
 -------------
@@ -209,3 +212,22 @@ Use /etc/kubernetes/manifests as the Static Pod path for example.
 -- go to master node
 # k run nginx-critical --image=nginx $do > nginx-critical-node01.yaml
 # scp nginx-critical-node01.yaml node01:/etc/kubernetes/manifests
+
+
+
+
+
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ points to remember $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+# k create role developer --resource=pods --verb=create,list,get,update,delete  --namespace=development  ****
+# k describe role developer
+
+# k create rolebinding developer-role-binding --role=developer --user=john --namespace=development
+# k describe rolebinding developer-role-binding
+
+# k auth can-i update pods --namespace=development --as=john
+# k auth can-i list pods --namespace=development --as=john
+
+# k run test-nslookup --image=busybox:1.28 --rm --it -- nslookup 10-32-0-5.default.pod  > /root/nginx.pod
+

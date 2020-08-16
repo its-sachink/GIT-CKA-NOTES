@@ -148,7 +148,7 @@
 	# ip addr show ens3
 
 
-2) What is the range of IP addresses configured for PODs on this cluster?
+2) What is the range of IP addresses configured for PODs on this cluster? ****
 
 	# kubectl logs <weave-pod-name> weave -n kube-system 	<<<< and look for ipalloc-range
 
@@ -437,3 +437,76 @@ $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ Final Short Nodes $$$$$$$$$$$$$
 
 
 
+# netstat -ntulpa | grep -i etcd
+
+		a - shows all the conntections
+
+		- 2379 is the port of ETCD to which all control plane components connect to. 2380 is only for etcd peer-to-peer connectivity. When you have multiple master nodes.
+
+
+- What is the path configured with all binaries of CNI supported plugins?
+
+	# ps aux | grep -i kubelet | grep -i cni
+
+			 and look for --cni-bin-dir option
+
+
+- What is the CNI plugin configured to be used on this kubernetes cluster?
+
+	#** ls /etc/cni/net.d/		<<<< remember this
+
+	# cat /etc/cni/net.d/10-weave.conflist
+
+
+- CNI is no installed means you have to install Weave
+
+
+- What is the range of IP addresses configured for PODs on this cluster? ****
+
+	# kubectl logs <weave-pod-name> weave -n kube-system 	<<<< and look for ipalloc-range
+
+
+				pod-name 	 cont-name
+	#** k logs weave-net-hdwjj weave -n kube-system | grep -i alloc
+INFO: 2020/07/05 09:32:41.259374 Command line options: map[conn-limit:200 datapath:datapath db-prefix:/weavedb/weave-net docker-api: expect-npc:true host-root:/host http-addr:127.0.0.1:6784 ipalloc-init:consensus=1 ipalloc-range:10.32.0.0/12 metrics-addr:0.0.0.0:6782 name:6a:d3:47:eb:80:2e nickname:master no-dns:true port:6783]
+
+
+
+- What is the IP Range configured for the services within the cluster?
+
+	# cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep cluster-ip-range
+
+	#** cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -i cluster-ip
+    - --service-cluster-ip-range=10.96.0.0/12
+
+
+- What type of proxy is the kube-proxy configured to use?
+
+	#** kubectl logs kube-proxy-ft6n7 -n kube-system 		<<<< check logs here
+
+
+- default.svc.cluster.local
+  default.pod.cluster.local
+
+  namespace.svc.cluster.local
+  namespace.pod.cluster.local
+
+
+
+- Create ingress resource for each namespace differently
+
+
+- Ingress controller is deployed in "ingress-space" namespace.
+		
+		- Create a configmap in "ingress-space" namespace.
+		- Create a serviceaccount in "ingress-space" namespace.
+		- Create role and rolebinding in "ingress-space" namespace.
+		- Deploy ingress-controller in "ingress-space" namespace.
+		- Expose the deployment in "ingress-space" only.
+
+
+
+- Ingress resource in deployed in it own namespace "default" or "app-space".
+		- Ingress resource is deployed in its own namespace.
+
+	

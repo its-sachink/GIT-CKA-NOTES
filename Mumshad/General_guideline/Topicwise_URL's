@@ -3,14 +3,37 @@
 
 2) --------------------------------------------- CoreConcepts ------------------------------------------------------
 
-- Need to check regarding scale for deployments
+-**** Scale the ReplicaSet to 5 PODs
+	# k scale rs new-replica-set --replicas=5
+	
 
-Explore the --record option while creating the deployment. Use kubectl edit or kubectl set image to upgrade the version.
+- 	- To switch to dev namespace permanently
+
+		# kubectl config set-context $(kubectl config current-context) --namespace=dev
+
+		where,
+				$ k config current-context
+				kubernetes-admin@kubernetes
+				
+				
+-**** Deploy a redis pod using the redis:alpine image with the labels set to tier=db.
+
+	# k run redis --image=redis:alpine -l tier=db				
+	
+	
+-**** Create a new pod called custom-nginx using the nginx image and expose it on container port 8080
+
+		# kubectl run custom-nginx --image=nginx --port=8080
+
+
+
 
 3) --------------------------------------------- Scheduling : ------------------------------------------------------
 
 
 # kp --selector env=prod,bu=finance,tier=frontend
+
+# k get all --selector env=prod
 
 # k taint nodes node01 spray=mortein:NoSchedule
 
@@ -20,13 +43,15 @@ Explore the --record option while creating the deployment. Use kubectl edit or k
 
 
 # k label nodes node01 color=blue
+# k label pod nginx env=prod
 
 # k describe node node01 | grep -i label -A6
 
 
 - Affinity : https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
 
-	- While adding affinity make sure to add after the containers sections always
+	- While adding affinity make sure to add after the containers sections always***, this ensures everything is good for deployment.
+
 
 
 - Taints to node == Tolerations is set on pod
@@ -54,6 +79,14 @@ Explore the --record option while creating the deployment. Use kubectl edit or k
 	     name: nginx
 	  schedulerName: my-scheduler 		<<< Need to Add this
 -----------------
+
+
+
+4) ------------------------------------------ Logging&Monitoring ---------------------------------------------------
+
+- If a pod contains multiple docker containers.
+
+	#kubectl logs -f event-simulator-pod  pod-name-1 	****
 
 
 
@@ -146,6 +179,15 @@ Explore the --record option while creating the deployment. Use kubectl edit or k
 		  enableServiceLinks: true
 ---------------
 
+---------------
+spec:
+  containers:
+  - env:
+    - name: APP_COLOR
+      value: green
+    image: kodekloud/webapp-color
+    imagePullPolicy: Always
+---------------
 
 
 
@@ -243,6 +285,171 @@ ETCDCTL_API=3 etcdctl --endpoints=https://[127.0.0.1]:2379 --cacert=/etc/kuberne
     	--initial-cluster-token=etcd-cluster-1
 
     	- also the hostPath mounts
+
+
+
+7) --------------------------------------- Security -----------------------------------------------
+
+
+# k describe pod kube-apiserver-master -n kube-system | grep -i key ****
+      --etcd-keyfile=/etc/kubernetes/pki/apiserver-etcd-client.key
+      --kubelet-client-key=/etc/kubernetes/pki/apiserver-kubelet-client.key 			<<<< 3
+      --proxy-client-key-file=/etc/kubernetes/pki/front-proxy-client.key
+
+
+# openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text | grep -i cn -A4 ****
+        Issuer: CN = kubernetes 						<<<<
+
+
+- Kubectl suddenly stops responding to your commands. Check it out!
+	# docker ps -a | grep -i etcd 		<<<< check for expired container here
+
+
+- Context
+
+	# kubectl config current-context
+	# k config view --kubeconfig=/root/my-kube-config
+	# k config use-context research --kubeconfig=/root/my-kube-config
+
+
+- 	-------------------------------
+	spec:
+	  ##securityContext:
+	    ##runAsUser: 1010 					<<<< Does not work
+	  containers:
+	  - name: sec-ctx-demo-2
+	    image: ubuntu-sleeper
+	    securityContext:
+	      runAsUser: 1010 					<<<< This works
+	      allowPrivilegeEscalation: false
+	-------------------------------
+
+- 	---------------------------------
+
+	spec:
+	  podSelector:
+	    matchLabels:
+	      name: internal
+	  policyTypes:
+	  - Egress
+	  egress: 
+	  - to:                             ***** more than 2 "-to" allowed
+	    - podSelector:
+	        matchLabels:
+	          name: payroll
+	    ports:
+	    - protocol: TCP
+	      port: 8080
+	  - to:
+	    - podSelector:
+	        matchLabels:
+	          name: mysql
+	    ports:
+	    - protocol: TCP
+	      port: 3306 
+	------------------------------------------
+
+
+
+
+
+
+9) --------------------------------------- Networking -----------------------------------------------
+
+# netstat -ntulpa | grep -i etcd
+
+		a - shows all the conntections
+
+		- 2379 is the port of ETCD to which all control plane components connect to. 2380 is only for etcd peer-to-peer connectivity. When you have multiple master nodes.
+
+
+- What is the path configured with all binaries of CNI supported plugins?
+
+	# ps aux | grep -i kubelet | grep -i cni
+
+			 and look for --cni-bin-dir option
+
+
+- What is the CNI plugin configured to be used on this kubernetes cluster?
+
+	#** ls /etc/cni/net.d/		<<<< remember this
+
+	# cat /etc/cni/net.d/10-weave.conflist
+
+
+- CNI is no installed means you have to install Weave
+
+
+- What is the range of IP addresses configured for PODs on this cluster? ****
+
+	# kubectl logs <weave-pod-name> weave -n kube-system 	<<<< and look for ipalloc-range
+
+
+				pod-name 	 cont-name
+	#** k logs weave-net-hdwjj weave -n kube-system | grep -i alloc
+INFO: 2020/07/05 09:32:41.259374 Command line options: map[conn-limit:200 datapath:datapath db-prefix:/weavedb/weave-net docker-api: expect-npc:true host-root:/host http-addr:127.0.0.1:6784 ipalloc-init:consensus=1 ipalloc-range:10.32.0.0/12 metrics-addr:0.0.0.0:6782 name:6a:d3:47:eb:80:2e nickname:master no-dns:true port:6783]
+
+
+
+- What is the IP Range configured for the services within the cluster?
+
+	# cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep cluster-ip-range
+
+	#** cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -i cluster-ip
+    - --service-cluster-ip-range=10.96.0.0/12
+
+
+- What type of proxy is the kube-proxy configured to use?
+
+	#** kubectl logs kube-proxy-ft6n7 -n kube-system 		<<<< check logs here
+
+
+- default.svc.cluster.local
+  default.pod.cluster.local
+
+  namespace.svc.cluster.local
+  namespace.pod.cluster.local
+
+
+
+- Create ingress resource for each namespace differently
+
+
+- Ingress controller is deployed in "ingress-space" namespace.
+		
+		- Create a configmap in "ingress-space" namespace.
+		- Create a serviceaccount in "ingress-space" namespace.
+		- Create role and rolebinding in "ingress-space" namespace.
+		- Deploy ingress-controller in "ingress-space" namespace.
+		- Expose the deployment in "ingress-space" only.
+
+
+
+- Ingress resource in deployed in it own namespace "default" or "app-space".
+		- Ingress resource is deployed in its own namespace.
+
+
+- Ports configurations :
+
+	- Master node Ports and services
+
+		-** kubectl
+			- Kube-api 					: 6443
+			- kubelet 					: 10250 				<<<< Yes kubernetes is present on master node
+			- kube-scheduler 			: 10251
+			- kube-controller-manager 	: 10252
+			- ETCD						: 2379
+
+			- For multiple master we need one more port along with aboves ports open
+
+				- ETCD	: 2380			<<<< For ETCD clients to communicate with each other
+
+
+		- Worker Nodes
+			- kubelet 					: 10250
+			- Services 					: 30000-32767
+
+
 11) --------------------------------------- Install K8 kubeadm way -----------------------------------------------
 
 	1. make IP table changes on both the nodes master and node01
@@ -251,7 +458,123 @@ ETCDCTL_API=3 etcdctl --endpoints=https://[127.0.0.1]:2379 --cacert=/etc/kuberne
 	4. Node01 - join node01 using "kubeadm join command"
 	5. Then install Weave only on master
 
+# kubeadm init --config=<path>/conf_file --ignore-preflight-errors=all
+
+# kubeadm reset		<<<< to revert any changes made to this host by "kubeadm init" or "kubeadm join"
+
+------
+step 1 : kubeadm init --cert-dir /etc/kubernetes/pki/bharat (on master)
+
+step2 : 
+scp  /etc/kubernetes/pki/bharat/ca.crt from master to worker node /etc/kubernetes/pki/bharat/ca.crt
+(on worker) before running kubeadm join command
+
+On master all certificates goes into the mention directory so no manipulation needed at master. 
+at worker default dir of ca.crt is /etc/kubereneres/pki  so once the join command get break simply copy the generated ca.crt from ../PKi dir to custom dir and then rerun the join command with --ignore-preflight.
+
+
+
+
+13) --------------------------------------- Troubleshooting -----------------------------------------------
+
+--------------- Hints ------------
+- SVC ****
+	- check and match name of the services.
+	- check labels.
+	- check target endpoint of svc.
+	- check the cluster-IP ports.
+
+- Pod
+	- check env in pods.
+
+# kubectl get all -n alpha -o wide ****
+# k describe svc mysql-service -n beta | grep -i target ****
+# k describe pod mysql -n epsilon  | grep -i port -A4
+
+--------- controller node -------------
+
+- Check scheduler status
+
+	#** kubectl describe pod kube-scheduler-master -n kube-system
+- Check kube-controller-manager
+
+	# kubectl describe pod kube-controller-manager -n kube-system
+
+	# kubectl logs kube-controller-manager -n kube-system
+
+---------- worked node -------------
+
+#** systemctl status kubelet
+#** journalctl -u kubelet
+		#** cd /etc/systemd/system/kubelet.serviced/
+
+		#** vim 10-kubeadm.conf
+
+		#** vim /var/lib/kubelet/config.yaml
+#** kubectl cluster-info 		<<< on master node
+
+	- correct port is 6443
+	# vim /etc/kubernetes/kubelet.conf
+
+
 
 
 7) --------------------------------------- Security -----------------------------------------------
 
+# k describe pod kube-apiserver-master -n kube-system | grep -i key ****
+      --etcd-keyfile=/etc/kubernetes/pki/apiserver-etcd-client.key
+      --kubelet-client-key=/etc/kubernetes/pki/apiserver-kubelet-client.key 			<<<< 3
+	  
+# openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text | grep -i cn -A4 ****
+        Issuer: CN = kubernetes 						<<<<
+        Validity
+            Not Before: Jul  6 08:15:15 2020 GMT	  
+			
+- Kubectl suddenly stops responding to your commands. Check it out! Someone recently modified the /etc/kubernetes/manifests/etcd.yaml file.
+
+		**#** docker ps -a | grep -i etcd 		<<<< check for expired container here
+
+		# docker logs -f expired_container
+		
+		
+	# k config view --kubeconfig=/root/my-kube-config
+	# k config use-context research --kubeconfig=/root/my-kube-config
+	# kubectl config current-context
+	
+-----------------
+	spec:
+	  ##securityContext:
+	    ##runAsUser: 1010 					<<<< Does not work
+	  containers:
+	  - name: sec-ctx-demo-2
+	    image: ubuntu-sleeper
+	    securityContext:
+	      runAsUser: 1010 					<<<< This works
+	      allowPrivilegeEscalation: false
+-------------------------------
+
+- More than 2 "-to" allowed
+
+-------------------------------
+	spec:
+	  podSelector:
+	    matchLabels:
+	      name: internal
+	  policyTypes:
+	  - Egress
+	  egress: 
+	  - to:                             ***** more than 2 -to allowed
+	    - podSelector:
+	        matchLabels:
+	          name: payroll
+	    ports:
+	    - protocol: TCP
+	      port: 8080
+	  - to:
+	    - podSelector:
+	        matchLabels:
+	          name: mysql
+	    ports:
+	    - protocol: TCP
+	      port: 3306 
+-------------------------------
